@@ -11,6 +11,10 @@ on:
       - '.github/workflows/build-images.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io
   REGISTRY_USER: ${{ github.actor }}
