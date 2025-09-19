@@ -99,8 +99,24 @@ jobs:
         echo "Stopping existing services..."
         sudo docker compose -f docker-compose.yml -f docker-compose.production.yml down --remove-orphans || true
         
+        echo "🔍 Checking final compose configuration..."
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml config --services
+        echo "App service configuration:"
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml config | grep -A 10 -B 5 "app:"
+        
+        # Ensure we're not building anything
+        echo "🚫 Killing any existing build processes..."
+        sudo pkill -f "docker.*build" || true
+        sudo docker system prune -f --volumes || true
+        
         echo "Starting services with pre-built GHCR image..."
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --pull always --no-build --force-recreate --wait
+        echo "Using flags: --pull always --no-build --force-recreate --wait"
+        timeout 300 sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --pull always --no-build --force-recreate --wait --progress=plain || {
+          echo "❌ Deployment timed out after 5 minutes"
+          echo "Checking logs..."
+          sudo docker compose -f docker-compose.yml -f docker-compose.production.yml logs --tail=50
+          exit 1
+        }
         echo "✅ All services are healthy and ready!"
     
     - name: Verify deployment
