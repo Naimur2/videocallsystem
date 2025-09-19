@@ -1,7 +1,8 @@
-FROM coturn/coturn:4.6.2-alpine
+FROM alpine:3.18
 
-# Install additional packages
+# Install CoTURN and additional packages
 RUN apk add --no-cache \
+    coturn \
     openssl \
     ca-certificates \
     netcat-openbsd
@@ -10,6 +11,7 @@ RUN apk add --no-cache \
 RUN addgroup -g 1000 coturn && \
     adduser -u 1000 -G coturn -s /bin/sh -D coturn
 
+# Create directories and set permissions
 RUN mkdir -p /var/lib/coturn /var/log/coturn /var/run/coturn && \
     chown -R coturn:coturn /var/lib/coturn /var/log/coturn /var/run/coturn
 

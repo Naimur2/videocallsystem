@@ -94,8 +94,10 @@ jobs:
       run: |
         echo "Stopping existing services..."
         sudo docker compose -f docker-compose.yml -f docker-compose.production.yml down --remove-orphans || true
+        echo "Pulling latest images..."
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml pull || true
         echo "Starting new services..."
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --force-recreate
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --force-recreate --build
     
     - name: Wait for services
       run: |
