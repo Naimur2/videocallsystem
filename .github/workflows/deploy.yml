@@ -72,6 +72,15 @@ jobs:
         ${{ secrets.ENV_VARS }}
         EOF
 
+    - name: Setup Docker Compose
+      run: |
+        # Check if docker compose is available
+        if ! sudo docker compose version; then
+          echo "Installing docker-compose..."
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin
+        fi
+
 
     - name: Clear old images
       run: sudo docker image prune -f
@@ -84,11 +93,11 @@ jobs:
     
     - name: Deploy with docker compose
       run: |
-        sudo docker compose -f docker compose.yml -f docker compose.production.yml down || true
-        sudo docker compose -f docker compose.yml -f docker compose.production.yml up -d
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml down || true
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d
     
     - name: Wait for services
       run: |
         echo "Waiting for services to start..."
         sleep 30
-        sudo docker compose ps
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml ps
