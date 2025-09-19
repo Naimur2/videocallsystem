@@ -115,6 +115,9 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             BUILDKIT_INLINE_CACHE=1
+            MEDIASOUP_SKIP_WORKER_PREBUILT_DOWNLOAD=false
+          # Increase timeout for MediaSoup compilation
+          timeout-minutes: 45
 
       - name: Output image
         id: image
