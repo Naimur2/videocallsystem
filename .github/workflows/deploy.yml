@@ -99,125 +99,15 @@ jobs:
         echo "Stopping existing services..."
         sudo docker compose -f docker-compose.yml -f docker-compose.production.yml down --remove-orphans || true
         
-        # Temporarily modify compose file to force image usage
-        echo "Creating temporary production-only compose file..."
-        cat > docker-compose.production-only.yml << 'EOF'
-        version: '3.8'
-        services:
-          caddy:
-            image: caddy:2.7-alpine
-            ports:
-              - "80:80"
-              - "443:443"
-            volumes:
-              - ./Caddyfile:/etc/caddy/Caddyfile
-              - caddy_data:/data
-              - caddy_config:/config
-              - caddy_logs:/var/log/caddy
-            environment:
-              - DOMAIN=${DOMAIN:-meeting.naimur-rahaman.com}
-            depends_on:
-              app:
-                condition: service_healthy
-            restart: unless-stopped
-            healthcheck:
-              test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health", "||", "exit", "1"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-
-          app:
-            image: ghcr.io/naimur2/videocallsystem:latest
-            environment:
-              - DATABASE_URL=${DATABASE_URL}
-              - REDIS_URL=${REDIS_URL}
-              - JWT_SECRET=${JWT_SECRET}
-              - SESSION_SECRET=${SESSION_SECRET}
-              - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
-              - RTC_MIN_PORT=${RTC_MIN_PORT}
-              - RTC_MAX_PORT=${RTC_MAX_PORT}
-              - TURN_USERNAME=${TURN_USERNAME}
-              - TURN_CREDENTIAL=${TURN_CREDENTIAL}
-              - TURN_SERVER=${TURN_SERVER}
-              - STUN_SERVER=${STUN_SERVER}
-              - NODE_ENV=production
-              - DOMAIN=${DOMAIN}
-              - PORT=${PORT}
-              - CORS_ORIGIN=${CORS_ORIGIN}
-            depends_on:
-              postgres:
-                condition: service_healthy
-              redis:
-                condition: service_healthy
-            restart: unless-stopped
-            healthcheck:
-              test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-
-          postgres:
-            image: postgres:15-alpine
-            environment:
-              POSTGRES_DB: mediasoup
-              POSTGRES_USER: mediasoup
-              POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}
-            volumes:
-              - ./data/postgres:/var/lib/postgresql/data
-            restart: unless-stopped
-            healthcheck:
-              test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-
-          redis:
-            image: redis:7-alpine
-            volumes:
-              - ./data/redis:/data
-            restart: unless-stopped
-            healthcheck:
-              test: ["CMD", "redis-cli", "ping"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-
-          coturn:
-            build: ./coturn
-            ports:
-              - "3478:3478/tcp"
-              - "3478:3478/udp"
-              - "5349:5349/tcp"
-              - "5349:5349/udp"
-              - "49152-65535:49152-65535/udp"
-            environment:
-              - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
-              - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
-            restart: unless-stopped
-            healthcheck:
-              test: ["CMD", "nc", "-z", "localhost", "3478"]
-              interval: 30s
-              timeout: 10s
-              retries: 3
-
-        volumes:
-          caddy_data:
-          caddy_config:
-          caddy_logs:
-        EOF
-        
-        echo "Verifying production compose uses pre-built image..."
-        sudo docker compose -f docker-compose.production-only.yml config | grep -A 2 -B 2 "image:"
-        
-        echo "Starting services with health checks and pre-built image..."
-        sudo docker compose -f docker-compose.production-only.yml up -d --no-build --force-recreate --wait
+        echo "Starting services with pre-built GHCR image..."
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --pull always --no-build --force-recreate --wait
         echo "✅ All services are healthy and ready!"
     
     - name: Verify deployment
       run: |
         echo "📊 Final service status:"
-        sudo docker compose -f docker-compose.production-only.yml ps
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml ps
         echo "🏥 Health check status:"
-        sudo docker compose -f docker-compose.production-only.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
         echo "🔍 Recent logs (last 5 lines per service):"
-        sudo docker compose -f docker-compose.production-only.yml logs --tail=5
+        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml logs --tail=5

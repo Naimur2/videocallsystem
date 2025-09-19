@@ -1,0 +1,400 @@
+# Production docker-compose file - uses pre-built images only# Production docker-compose file - uses pre-built images only# Production overrides for docker-compose.ymlversion: '3.8'
+
+version: '3.8'
+
+version: '3.8'
+
+services:
+
+  # Caddy reverse proxy# This file is used in GitHub Actions deployment
+
+  caddy:
+
+    image: caddy:2.7-alpineservices:
+
+    ports:
+
+      - "80:80"  # Caddy reverse proxyservices:
+
+      - "443:443"
+
+    volumes:  caddy:
+
+      - ./Caddyfile:/etc/caddy/Caddyfile
+
+      - caddy_data:/data    image: caddy:2.7-alpineservices:  frontend:
+
+      - caddy_config:/config
+
+      - caddy_logs:/var/log/caddy    ports:
+
+    environment:
+
+      - DOMAIN=${DOMAIN:-meeting.naimur-rahaman.com}      - "80:80"  app:    build:
+
+    depends_on:
+
+      app:      - "443:443"
+
+        condition: service_healthy
+
+    restart: unless-stopped    volumes:    image: ghcr.io/naimur2/videocallsystem:latest      context: ./videocall
+
+    healthcheck:
+
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health", "||", "exit", "1"]      - ./Caddyfile:/etc/caddy/Caddyfile
+
+      interval: 30s
+
+      timeout: 10s      - caddy_data:/data    build:      dockerfile: Dockerfile.prod
+
+      retries: 3
+
+      - caddy_config:/config
+
+  # Main application - uses pre-built image from GHCR
+
+  app:      - caddy_logs:/var/log/caddy      context: .    ports:
+
+    image: ghcr.io/naimur2/videocallsystem:latest
+
+    environment:    environment:
+
+      - DATABASE_URL=${DATABASE_URL}
+
+      - REDIS_URL=${REDIS_URL}      - DOMAIN=${DOMAIN:-meeting.naimur-rahaman.com}      args:      - "3000:3000"
+
+      - JWT_SECRET=${JWT_SECRET}
+
+      - SESSION_SECRET=${SESSION_SECRET}    depends_on:
+
+      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
+
+      - RTC_MIN_PORT=${RTC_MIN_PORT}      app:        - NEXT_PUBLIC_BACKEND_URL=https://meeting.naimur-rahaman.com/api    environment:
+
+      - RTC_MAX_PORT=${RTC_MAX_PORT}
+
+      - TURN_USERNAME=${TURN_USERNAME}        condition: service_healthy
+
+      - TURN_CREDENTIAL=${TURN_CREDENTIAL}
+
+      - TURN_SERVER=${TURN_SERVER}    restart: unless-stopped        - NEXT_PUBLIC_SOCKET_URL=https://meeting.naimur-rahaman.com      - NODE_ENV=production
+
+      - STUN_SERVER=${STUN_SERVER}
+
+      - NODE_ENV=production    healthcheck:
+
+      - DOMAIN=${DOMAIN}
+
+      - PORT=${PORT}      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health", "||", "exit", "1"]        - NEXT_PUBLIC_TURN_SERVER_HOST=meeting.naimur-rahaman.com      - NEXT_PUBLIC_BACKEND_URL=${BACKEND_URL:-http://backend:3001}
+
+      - CORS_ORIGIN=${CORS_ORIGIN}
+
+    depends_on:      interval: 30s
+
+      postgres:
+
+        condition: service_healthy      timeout: 10s        - NEXT_PUBLIC_TURN_SERVER_PORT=3478      - NEXT_PUBLIC_SOCKET_URL=${SOCKET_URL:-ws://backend:3001}
+
+      redis:
+
+        condition: service_healthy      retries: 3
+
+    restart: unless-stopped
+
+    healthcheck:        - NEXT_PUBLIC_TURN_USERNAME=mediasoup      - NEXT_PUBLIC_TURN_SERVER=${TURN_SERVER:-standard.relay.metered.ca:80}
+
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+
+      interval: 30s  # Main application - uses pre-built image from GHCR
+
+      timeout: 10s
+
+      retries: 3  app:        - NEXT_PUBLIC_TURN_PASSWORD=mediasoupTurn2024!      - NEXT_PUBLIC_TURN_USERNAME=${TURN_USERNAME}
+
+
+
+  # PostgreSQL database    image: ghcr.io/naimur2/videocallsystem:latest
+
+  postgres:
+
+    image: postgres:15-alpine    environment:        - NEXT_PUBLIC_APP_NAME=MediaSoup Video Call      - NEXT_PUBLIC_TURN_CREDENTIAL=${TURN_CREDENTIAL}
+
+    environment:
+
+      POSTGRES_DB: mediasoup      # Production environment variables from secrets
+
+      POSTGRES_USER: mediasoup
+
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}      - DATABASE_URL=${DATABASE_URL}        - NEXT_PUBLIC_APP_VERSION=1.0.0    depends_on:
+
+    volumes:
+
+      - ./data/postgres:/var/lib/postgresql/data      - REDIS_URL=${REDIS_URL}
+
+    restart: unless-stopped
+
+    healthcheck:      - JWT_SECRET=${JWT_SECRET}    environment:      - backend
+
+      test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]
+
+      interval: 30s      - SESSION_SECRET=${SESSION_SECRET}
+
+      timeout: 10s
+
+      retries: 3      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}      # Production environment variables from secrets    networks:
+
+
+
+  # Redis cache      - RTC_MIN_PORT=${RTC_MIN_PORT}
+
+  redis:
+
+    image: redis:7-alpine      - RTC_MAX_PORT=${RTC_MAX_PORT}      - DATABASE_URL=${DATABASE_URL}      - mediasoup-network
+
+    volumes:
+
+      - ./data/redis:/data      - TURN_USERNAME=${TURN_USERNAME}
+
+    restart: unless-stopped
+
+    healthcheck:      - TURN_CREDENTIAL=${TURN_CREDENTIAL}      - REDIS_URL=${REDIS_URL}    restart: unless-stopped
+
+      test: ["CMD", "redis-cli", "ping"]
+
+      interval: 30s      - TURN_SERVER=${TURN_SERVER}
+
+      timeout: 10s
+
+      retries: 3      - STUN_SERVER=${STUN_SERVER}      - JWT_SECRET=${JWT_SECRET}    healthcheck:
+
+
+
+  # CoTURN TURN/STUN server      - NODE_ENV=production
+
+  coturn:
+
+    build: ./coturn      - DOMAIN=${DOMAIN}      - SESSION_SECRET=${SESSION_SECRET}      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+
+    ports:
+
+      - "3478:3478/tcp"      - PORT=${PORT}
+
+      - "3478:3478/udp"
+
+      - "5349:5349/tcp"        - CORS_ORIGIN=${CORS_ORIGIN}      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}      interval: 30s
+
+      - "5349:5349/udp"
+
+      - "49152-65535:49152-65535/udp"    depends_on:
+
+    environment:
+
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}      postgres:      - RTC_MIN_PORT=${RTC_MIN_PORT}      timeout: 10s
+
+      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+
+    restart: unless-stopped        condition: service_healthy
+
+    healthcheck:
+
+      test: ["CMD", "nc", "-z", "localhost", "3478"]      redis:      - RTC_MAX_PORT=${RTC_MAX_PORT}      retries: 3
+
+      interval: 30s
+
+      timeout: 10s        condition: service_healthy
+
+      retries: 3
+
+    restart: unless-stopped      - TURN_USERNAME=${TURN_USERNAME}
+
+volumes:
+
+  caddy_data:    healthcheck:
+
+  caddy_config:
+
+  caddy_logs:      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]      - TURN_CREDENTIAL=${TURN_CREDENTIAL}  backend:
+
+      interval: 30s
+
+      timeout: 10s      - TURN_SERVER=${TURN_SERVER}    build:
+
+      retries: 3
+
+      - STUN_SERVER=${STUN_SERVER}      context: ./videocallbackend
+
+  # PostgreSQL database
+
+  postgres:      - NODE_ENV=production      dockerfile: Dockerfile.prod
+
+    image: postgres:15-alpine
+
+    environment:      - DOMAIN=${DOMAIN}    ports:
+
+      POSTGRES_DB: mediasoup
+
+      POSTGRES_USER: mediasoup      - PORT=${PORT}      - "3001:3001"
+
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}
+
+    volumes:      - CORS_ORIGIN=${CORS_ORIGIN}      - "40000-49999:40000-49999/udp"
+
+      - ./data/postgres:/var/lib/postgresql/data
+
+    restart: unless-stopped    environment:
+
+    healthcheck:
+
+      test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]  caddy:      - NODE_ENV=production
+
+      interval: 30s
+
+      timeout: 10s    environment:      - PORT=3001
+
+      retries: 3
+
+      - DOMAIN=${DOMAIN:-meeting.naimur-rahaman.com}      - MEDIASOUP_LISTEN_IP=0.0.0.0
+
+  # Redis cache
+
+  redis:      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
+
+    image: redis:7-alpine
+
+    volumes:  coturn:      - RTC_MIN_PORT=40000
+
+      - ./data/redis:/data
+
+    restart: unless-stopped    ports:      - RTC_MAX_PORT=49999
+
+    healthcheck:
+
+      test: ["CMD", "redis-cli", "ping"]      - "3478:3478/tcp"      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+
+      interval: 30s
+
+      timeout: 10s      - "3478:3478/udp"      - POSTGRES_PORT=${POSTGRES_PORT:-5432}
+
+      retries: 3
+
+      - "5349:5349/tcp"        - POSTGRES_DB=${POSTGRES_DB:-mediasoup}
+
+  # CoTURN TURN/STUN server
+
+  coturn:      - "5349:5349/udp"      - POSTGRES_USER=${POSTGRES_USER:-mediasoup}
+
+    build: ./coturn
+
+    ports:      - "49152-65535:49152-65535/udp"  # Full range for production      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+
+      - "3478:3478/tcp"
+
+      - "3478:3478/udp"    environment:      - REDIS_HOST=${REDIS_HOST:-redis}
+
+      - "5349:5349/tcp"  
+
+      - "5349:5349/udp"      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}      - REDIS_PORT=${REDIS_PORT:-6379}
+
+      - "49152-65535:49152-65535/udp"  # Full range for production
+
+    environment:      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}      - REDIS_PASSWORD=${REDIS_PASSWORD}
+
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+
+      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}      - JWT_SECRET=${JWT_SECRET}
+
+    restart: unless-stopped
+
+    healthcheck:  postgres:      - TURN_SERVER=${TURN_SERVER:-standard.relay.metered.ca:80}
+
+      test: ["CMD", "nc", "-z", "localhost", "3478"]
+
+      interval: 30s    environment:      - TURN_USERNAME=${TURN_USERNAME}
+
+      timeout: 10s
+
+      retries: 3      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}      - TURN_CREDENTIAL=${TURN_CREDENTIAL}
+
+    depends_on:
+
+volumes:      - postgres
+
+  caddy_data:      - redis
+
+  caddy_config:    networks:
+
+  caddy_logs:      - mediasoup-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-mediasoup}
+      - POSTGRES_USER=${POSTGRES_USER:-mediasoup}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - mediasoup-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mediasoup}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - mediasoup-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - mediasoup-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  mediasoup-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
