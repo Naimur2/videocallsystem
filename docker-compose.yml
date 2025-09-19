@@ -1,0 +1,108 @@
+services:
+  # Frontend - Next.js Application with Metered TURN
+  frontend:
+    build:
+      context: ./videocall
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_BACKEND_URL=https://call.naimur-rahaman.com/api
+        - NEXT_PUBLIC_SOCKET_URL=https://call.naimur-rahaman.com
+        - NEXT_PUBLIC_TURN_SERVER_HOST=standard.relay.metered.ca
+        - NEXT_PUBLIC_TURN_USERNAME=0f1eee4f1c2a872fbb855d62
+        - NEXT_PUBLIC_TURN_PASSWORD=q6s07WgG7GLIq6WM
+    container_name: videocall-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Backend - Express.js API
+  backend:
+    build:
+      context: ./videocallbackend
+      dockerfile: Dockerfile.dev
+    container_name: videocall-backend
+    ports:
+      - "3201:3201"                    # Backend API (tunneled via Cloudflare)
+      - "44444:44444/udp"             # WebRTC Server main port (direct IP)
+      - "44444:44444/tcp"             # WebRTC Server TCP fallback
+      - "40000-40199:40000-40199/udp" # Smaller MediaSoup range (200 ports)
+    environment:
+      - NODE_ENV=production
+      - PORT=3201
+      - DATABASE_URL=postgresql://videocall:videocall123@postgres:5432/videocall
+      - REDIS_URL=redis://redis:6379
+      - CORS_ORIGIN=https://call.naimur-rahaman.com
+      - ALLOWED_ORIGINS=https://call.naimur-rahaman.com,https://*.ngrok-free.app
+      - MEDIASOUP_LISTEN_IP=0.0.0.0
+      - MEDIASOUP_ANNOUNCED_IP=103.168.206.10     # Public IP for production
+      - MEDIASOUP_WEBRTC_SERVER_PORT=44444        # Centralized WebRTC server port
+      - TURN_SERVER_HOST=standard.relay.metered.ca
+      - TURN_SERVER_PORT=80
+      - TURN_USERNAME=0f1eee4f1c2a872fbb855d62
+      - TURN_PASSWORD=q6s07WgG7GLIq6WM
+    volumes:
+      - ./videocallbackend:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: videocall-postgres
+    environment:
+      - POSTGRES_DB=videocall
+      - POSTGRES_USER=videocall
+      - POSTGRES_PASSWORD=videocall123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: videocall-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: redis-server --appendonly yes
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: videocall-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx-tunnel.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

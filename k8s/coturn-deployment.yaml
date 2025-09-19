@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mediasoup-coturn
+  namespace: mediasoup
+  labels:
+    app: mediasoup-coturn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mediasoup-coturn
+  template:
+    metadata:
+      labels:
+        app: mediasoup-coturn
+    spec:
+      containers:
+      - name: coturn
+        image: gcr.io/YOUR_PROJECT_ID/coturn:latest  # Replace YOUR_PROJECT_ID
+        ports:
+        - containerPort: 3478
+          name: turn-udp
+          protocol: UDP
+        - containerPort: 3478
+          name: turn-tcp
+          protocol: TCP
+        - containerPort: 5349
+          name: turns-udp
+          protocol: UDP
+        - containerPort: 5349
+          name: turns-tcp
+          protocol: TCP
+        - containerPort: 49152
+          name: relay-start
+          protocol: UDP
+        - containerPort: 65535
+          name: relay-end
+          protocol: UDP
+        env:
+        - name: TURN_USERNAME
+          value: "mediasoup"
+        - name: TURN_PASSWORD
+          value: "mediasoup123"
+        - name: TURN_SECRET
+          value: "mediasoup-turn-secret-2024"
+        - name: EXTERNAL_IP
+          value: "YOUR_EXTERNAL_IP"  # Replace with your external IP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        securityContext:
+          runAsNonRoot: false  # COTURN needs root for port binding
+          allowPrivilegeEscalation: true

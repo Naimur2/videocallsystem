@@ -1,0 +1,134 @@
+# ======================
+# PRODUCTION .GITIGNORE - MULTI-REPOSITORY STRUCTURE
+# ======================
+# This handles multiple Git repositories within the main project
+
+# ===================================
+# Multi-Repository Management
+# ===================================
+# Individual repository .git directories are preserved
+# Content is managed via submodules or manual sync
+
+# Backup directories created during repository management
+backup-*/
+*.backup
+repository-backup/
+
+# ===================================
+# Environment files (keep .env.example)
+# ===================================
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.backup
+.env.cloudflare
+.env.*
+!.env.example
+
+# ===================================
+# Dependencies (all subdirectories)
+# ===================================
+node_modules/
+*/node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+bun.lock
+**/bun.lock
+package-lock.json
+**/package-lock.json
+yarn.lock
+**/yarn.lock
+
+# Production builds
+dist/
+build/
+.next/
+out/
+.vercel/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+logs/
+*.log
+.tunnel-url
+cloudflared-output.tmp
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+!docker-compose.prod.yml
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+backups/
+
+# AWS and deployment
+.aws/
+*.pem
+*.key
+!*.pub
+
+# Kubernetes
+*.kubeconfig
+
+# Data directories
+data/
+uploads/
+coturn/logs/
+
+# Scripts (keep essential ones)
+start-*.ps1
+docker-*.ps1
+*.ps1
+!deploy.ps1
+!setup.ps1
+
+# Documentation builds
+docs/build/
+docs/.docusaurus/
+
+# MediaSoup demo (if not needed)
+mediasoup-demo/
+
+# Testing
+coverage/
+.nyc_output/
+.coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Local development
+.kilocode/
