@@ -4,6 +4,7 @@
 services:
   app:
     image: ghcr.io/naimur2/videocallsystem:latest
+    build: !reset null  # Explicitly remove build context from base compose
     environment:
       # Production environment variables from secrets
       - DATABASE_URL=${DATABASE_URL}
