@@ -1,0 +1,38 @@
+# Development overrides for docker-compose.ghcr.yml
+# Use this for local development with GHCR images
+
+services:
+  frontend:
+    ports:
+      - "3000:3000"  # Expose frontend for direct access
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:8080/api
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:8080
+
+  backend:
+    ports:
+      - "8080:8080"  # Expose backend for direct access
+    environment:
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:3000,http://localhost:8080
+
+  postgres:
+    ports:
+      - "5432:5432"  # Expose for database tools
+
+  redis:
+    ports:
+      - "6379:6379"  # Expose for Redis tools
+
+  coturn:
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      # Reduced port range for development
+      - "40000-40100:40000-40100/udp"
+
+  caddy:
+    ports:
+      - "80:80"
+      - "443:443"

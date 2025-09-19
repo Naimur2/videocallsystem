@@ -1,5 +1,8 @@
-﻿services:
-  # Caddy reverse proxy
+# Production Docker Compose with Pre-built GHCR Images
+# Each service uses a dedicated image built and pushed separately
+
+services:
+  # Caddy reverse proxy (uses official image)
   caddy:
     image: caddy:2.7-alpine
     ports:
@@ -13,7 +16,9 @@
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     depends_on:
-      app:
+      frontend:
+        condition: service_healthy
+      backend:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -22,19 +27,33 @@
       timeout: 10s
       retries: 3
 
-  # Main application
-  app:
-    build: 
-      context: .
-      args:
-        - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
-        - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-localhost}
-        - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-localhost}
-        - NEXT_PUBLIC_TURN_SERVER_PORT=3478
-        - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
-        - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
-        - NEXT_PUBLIC_APP_NAME=MediaSoup Video Call
-        - NEXT_PUBLIC_APP_VERSION=1.0.0
+  # Frontend Service (Next.js)
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-frontend:latest
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
+      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-localhost}
+      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-localhost}
+      - NEXT_PUBLIC_TURN_SERVER_PORT=3478
+      - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - NEXT_PUBLIC_APP_NAME=MediaSoup Video Call
+      - NEXT_PUBLIC_APP_VERSION=1.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+
+  # Backend Service (Node.js/Express)
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-backend:latest
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://mediasoup:password@postgres:5432/mediasoup}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
@@ -47,10 +66,10 @@
       - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
       - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
       - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
-      - NODE_ENV=${NODE_ENV:-development}
+      - NODE_ENV=production
       - DOMAIN=${DOMAIN:-localhost}
-    ports:
-      - "40000-49999:40000-49999/udp"  # WebRTC media ports
+      - PORT=${PORT:-8080}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://localhost}
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,19 +79,19 @@
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 1m
 
-  # PostgreSQL database
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: mediasoup
-      POSTGRES_USER: mediasoup
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=mediasoup
+      - POSTGRES_USER=mediasoup
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -82,7 +101,7 @@
       timeout: 5s
       retries: 5
 
-  # Redis cache
+  # Redis Cache/Session Store
   redis:
     image: redis:7-alpine
     volumes:
@@ -96,22 +115,58 @@
 
   # CoTURN server for WebRTC NAT traversal
   coturn:
-    build: ./coturn
+    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-coturn:latest
     ports:
       - "3478:3478/tcp"
       - "3478:3478/udp"
       - "5349:5349/tcp"
       - "5349:5349/udp"
-      - "50000-50100:50000-50100/udp"  # Smaller port range for local development
+      - "${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-49999}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-49999}/udp"
     volumes:
       - coturn_data:/var/lib/coturn
       - coturn_logs:/var/log/coturn
     environment:
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - TURN_REALM=${DOMAIN:-localhost}
+      - EXTERNAL_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
     restart: unless-stopped
-    networks:
-      - default
+
+  # Legacy Full-Stack App (if still needed for migration)
+  legacy-app:
+    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-app:latest
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://mediasoup:password@postgres:5432/mediasoup}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-in-production}
+      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
+      - RTC_MIN_PORT=${RTC_MIN_PORT:-40000}
+      - RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
+      - NODE_ENV=production
+      - DOMAIN=${DOMAIN:-localhost}
+      - PORT=${PORT:-3000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://localhost}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      coturn:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    profiles:
+      - legacy  # Only start with --profile legacy
 
 volumes:
   postgres_data:
@@ -121,3 +176,7 @@ volumes:
   caddy_logs:
   coturn_data:
   coturn_logs:
+
+networks:
+  default:
+    driver: bridge

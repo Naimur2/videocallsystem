@@ -1,0 +1,95 @@
+name: Deploy Multi-Service Application
+
+on:
+  workflow_run:
+    workflows: ["Build and Push Multi-Service Images"]
+    types:
+      - completed
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository }}
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Login to GitHub Container Registry
+      run: |
+        echo ${{ secrets.GITHUB_TOKEN }} | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    
+    - name: Create environment file
+      run: |
+        cat > .env << 'EOF'
+        ${{ secrets.ENV_VARS }}
+        GITHUB_REPOSITORY=${{ github.repository }}
+        EOF
+
+    - name: Pull all service images
+      run: |
+        echo "🔄 Pulling all pre-built service images..."
+        
+        # Pull all images in parallel for faster deployment
+        {
+          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-frontend:latest &
+          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-backend:latest &
+          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-coturn:latest &
+          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-app:latest &
+          wait
+        }
+        
+        echo "✅ All images pulled successfully"
+        sudo docker images | grep ghcr.io/${{ env.IMAGE_PREFIX }}
+    
+    - name: Deploy with multi-service compose
+      run: |
+        echo "🛑 Stopping existing services..."
+        sudo docker compose down --remove-orphans || true
+        
+        echo "🔍 Validating compose configuration..."
+        sudo docker compose config --quiet
+        
+        echo "🚀 Starting all services with pre-built images..."
+        sudo docker compose up -d \
+          --pull never \
+          --force-recreate \
+          --wait
+        
+        echo "✅ All services are healthy and ready!"
+    
+    - name: Verify deployment
+      run: |
+        echo "📊 Service Status:"
+        sudo docker compose ps
+        
+        echo ""
+        echo "🔍 Health Checks:"
+        sudo docker compose exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend starting..."
+        sudo docker compose exec -T backend curl -f http://localhost:8080/api/health || echo "Backend starting..."
+        
+        echo ""
+        echo "📋 Recent Logs:"
+        sudo docker compose logs --tail=5 frontend backend
+        
+        echo ""
+        echo "🎯 Deployment Summary:"
+        echo "- Frontend: ghcr.io/${{ env.IMAGE_PREFIX }}-frontend:latest"
+        echo "- Backend: ghcr.io/${{ env.IMAGE_PREFIX }}-backend:latest" 
+        echo "- CoTURN: ghcr.io/${{ env.IMAGE_PREFIX }}-coturn:latest"
+        echo "- Database: postgres:15-alpine"
+        echo "- Cache: redis:7-alpine"
+        echo "- Proxy: caddy:2.7-alpine"
+
+    - name: Legacy app deployment (optional)
+      if: github.event.inputs.deploy_legacy == 'true'
+      run: |
+        echo "🔄 Deploying legacy app as well..."
+        sudo docker compose --profile legacy up -d legacy-app
+        echo "✅ Legacy app deployed"

@@ -1,0 +1,123 @@
+﻿services:
+  # Caddy reverse proxy
+  caddy:
+    image: caddy:2.7-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main application
+  app:
+    build: 
+      context: .
+      args:
+        - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
+        - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-localhost}
+        - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-localhost}
+        - NEXT_PUBLIC_TURN_SERVER_PORT=3478
+        - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+        - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+        - NEXT_PUBLIC_APP_NAME=MediaSoup Video Call
+        - NEXT_PUBLIC_APP_VERSION=1.0.0
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://mediasoup:password@postgres:5432/mediasoup}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
+      - SESSION_SECRET=${SESSION_SECRET:-change-this-in-production}
+      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
+      - RTC_MIN_PORT=${RTC_MIN_PORT:-40000}
+      - RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
+      - NODE_ENV=${NODE_ENV:-development}
+      - DOMAIN=${DOMAIN:-localhost}
+    ports:
+      - "40000-49999:40000-49999/udp"  # WebRTC media ports
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      coturn:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mediasoup
+      POSTGRES_USER: mediasoup
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # CoTURN server for WebRTC NAT traversal
+  coturn:
+    build: ./coturn
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "5349:5349/udp"
+      - "50000-50100:50000-50100/udp"  # Smaller port range for local development
+    volumes:
+      - coturn_data:/var/lib/coturn
+      - coturn_logs:/var/log/coturn
+    environment:
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
+  coturn_data:
+  coturn_logs:
