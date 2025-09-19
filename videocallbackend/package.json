@@ -1,0 +1,54 @@
+{
+  "name": "videocallbackend",
+  "version": "1.0.0",
+  "description": "TypeScript Express backend for video call app",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && tsc-alias",
+    "start": "node -r tsconfig-paths/register dist/index.js",
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+    "simple": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/simpleServer.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "express",
+    "typescript",
+    "video-call",
+    "backend"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/ws": "^8.18.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.0.0",
+    "mediasoup": "^3.19.2",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.7.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.23",
+    "@types/morgan": "^1.9.4",
+    "@types/node": "^20.19.11",
+    "@types/socket.io": "^3.0.2",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.6",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.2"
+  },
+  "trustedDependencies": [
+    "mediasoup"
+  ]
+}
