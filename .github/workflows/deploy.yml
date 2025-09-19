@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: naimur2/videocallsystem
 
 jobs:
   build:
@@ -42,8 +42,8 @@ jobs:
           NEXT_PUBLIC_APP_NAME=MediaSoup Video Call
           NEXT_PUBLIC_APP_VERSION=1.0.0
         tags: |
-          ghcr.io/${{ github.repository }}:latest
-          ghcr.io/${{ github.repository }}:${{ github.sha }}
+          ghcr.io/${{ env.IMAGE_NAME }}:latest
+          ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
         labels: |
           org.opencontainers.image.source=${{ github.event.repository.html_url }}
           org.opencontainers.image.revision=${{ github.sha }}
@@ -71,7 +71,7 @@ jobs:
         EOF
     
     - name: Pull latest image
-      run: docker pull ghcr.io/${{ github.repository }}:latest
+      run: docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
     
     - name: Deploy with docker-compose
       run: |
