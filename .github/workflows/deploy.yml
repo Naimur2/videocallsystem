@@ -71,17 +71,24 @@ jobs:
         cat > .env << 'EOF'
         ${{ secrets.ENV_VARS }}
         EOF
+
+
+    - name: Clear old images
+      run: sudo docker image prune -f
+
+    - name: Remove build cache
+      run: sudo docker builder prune -f
     
     - name: Pull latest image
       run: sudo docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
     
-    - name: Deploy with docker-compose
+    - name: Deploy with docker compose
       run: |
-        sudo docker-compose -f docker-compose.yml -f docker-compose.production.yml down || true
-        sudo docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
+        sudo docker compose -f docker compose.yml -f docker compose.production.yml down || true
+        sudo docker compose -f docker compose.yml -f docker compose.production.yml up -d
     
     - name: Wait for services
       run: |
         echo "Waiting for services to start..."
         sleep 30
-        sudo docker-compose ps
+        sudo docker compose ps
