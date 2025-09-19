@@ -528,7 +528,43 @@ class SocketService {
         console.log(`[SocketService] 🔗 Using individual transport configuration`);
       }
       
-      // Use fixed transport creator for reliable transport creation\n      const { transport, params: transportInfo } = await FixedTransportCreator.createWebRtcTransport(\n        room.router,\n        producing,\n        consuming\n      );
+      // Create transport using proper configuration
+      let transport;
+      
+      if (webRtcServer) {
+        // Use WebRTC server
+        transport = await room.router!.createWebRtcTransport({
+          ...webRtcTransportOptions,
+          webRtcServer
+        });
+        console.log(`[SocketService] ✅ Transport created with WebRTC server`);
+      } else {
+        // Use individual transport configuration
+        transport = await room.router!.createWebRtcTransport({
+          ...webRtcTransportOptions,
+          listenInfos: [
+            {
+              protocol: "udp",
+              ip: "0.0.0.0",
+              announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com",
+              portRange: {
+                min: parseInt(process.env.RTC_MIN_PORT || "40000"),
+                max: parseInt(process.env.RTC_MAX_PORT || "49999")
+              }
+            },
+            {
+              protocol: "tcp", 
+              ip: "0.0.0.0",
+              announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com",
+              portRange: {
+                min: parseInt(process.env.RTC_MIN_PORT || "40000"),
+                max: parseInt(process.env.RTC_MAX_PORT || "49999")
+              }
+            }
+          ]
+        });
+        console.log(`[SocketService] ✅ Transport created with individual configuration`);
+      }
       
       // Store transport
       participant.transports.set(transport.id, transport);
@@ -544,31 +580,25 @@ class SocketService {
         sctpParameters: transport.sctpParameters,
         // CRITICAL: Add ICE servers for STUN/TURN functionality
         iceServers: [
-          // Google STUN servers for basic connectivity
+          // Local CoTURN server (self-hosted)
           {
-            urls: [
-              "stun:stun.l.google.com:19302",
-              "stun:stun1.l.google.com:19302",
-            ],
+            urls: `stun:${process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com"}:3478`,
           },
-          // Local COTURN server (must match docker-compose TURN config)
           {
-            urls: `turn:${process.env.MEDIASOUP_ANNOUNCED_IP || "call.naimur-rahaman.com"}:8443`,
+            urls: `turn:${process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com"}:3478`,
             username: process.env.TURN_USERNAME || "mediasoup",
-            credential: process.env.TURN_PASSWORD || "mediasoup123"
+            credential: process.env.TURN_CREDENTIAL || "mediasoupTurn2024!"
           },
           {
-            urls: `turns:${process.env.MEDIASOUP_ANNOUNCED_IP || "call.naimur-rahaman.com"}:8443`,
+            urls: `turns:${process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com"}:5349`,
             username: process.env.TURN_USERNAME || "mediasoup", 
-            credential: process.env.TURN_PASSWORD || "mediasoup123"
+            credential: process.env.TURN_CREDENTIAL || "mediasoupTurn2024!"
           },
-          // Backup reliable TURN servers
+          // Google STUN fallback
           {
-            urls: "turn:relay.metered.ca:80",
-            username: "0f1eee4f1c2a872fbb855d62",
-            credential: "q6s07WgG7GLIq6WM"
+            urls: "stun:stun.l.google.com:19302",
           }
-        ]
+        ],
       };
       
       console.log("[SocketService] ✅ WebRTC transport created:", {

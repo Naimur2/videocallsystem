@@ -1,0 +1,42 @@
+# Production overrides for docker-compose.yml
+# This file is used in GitHub Actions deployment
+
+services:
+  app:
+    image: ghcr.io/naimur2/videocallsystem:latest
+    environment:
+      # Production environment variables from secrets
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
+      - RTC_MIN_PORT=${RTC_MIN_PORT}
+      - RTC_MAX_PORT=${RTC_MAX_PORT}
+      - TURN_USERNAME=${TURN_USERNAME}
+      - TURN_CREDENTIAL=${TURN_CREDENTIAL}
+      - TURN_SERVER=${TURN_SERVER}
+      - STUN_SERVER=${STUN_SERVER}
+      - NODE_ENV=production
+      - DOMAIN=${DOMAIN}
+      - PORT=${PORT}
+      - CORS_ORIGIN=${CORS_ORIGIN}
+
+  caddy:
+    environment:
+      - DOMAIN=${DOMAIN:-meeting.naimur-rahaman.com}
+
+  coturn:
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"  
+      - "5349:5349/udp"
+      - "49152-65535:49152-65535/udp"  # Full range for production
+    environment:
+      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YOUR_SECURE_PASSWORD}

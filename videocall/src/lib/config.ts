@@ -1,26 +1,22 @@
 // Frontend configuration using environment variables
+import { runtimeConfig } from '../config/runtime';
+
 export const config = {
   // Backend API URL - Auto-detect tunnel vs localhost
-  backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 
-    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-      ? `${window.location.protocol}//${window.location.host}`  // Use same domain when accessed via tunnel
-      : "http://localhost:3201"),  // Fixed port: 3201 not 3001
+  backendUrl: runtimeConfig.backendUrl,
 
   // Socket.IO URL - Auto-detect tunnel vs localhost  
-  socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || 
-    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-      ? `${window.location.protocol}//${window.location.host}`  // Use same domain when accessed via tunnel
-      : "http://localhost:3201"),  // Fixed port: 3201 not 3001
+  socketUrl: runtimeConfig.socketUrl,
 
   // App configuration
   app: {
-    name: process.env.NEXT_PUBLIC_APP_NAME || "MediaSoup Video Call",
-    version: process.env.NEXT_PUBLIC_APP_VERSION || "1.0.0",
+    name: runtimeConfig.appName,
+    version: runtimeConfig.appVersion,
   },
 
   // Development settings
-  isDevelopment: process.env.NODE_ENV === "development",
-  isProduction: process.env.NODE_ENV === "production",
+  isDevelopment: runtimeConfig.isDevelopment,
+  isProduction: runtimeConfig.isProduction,
 
   // Video call settings
   videoCall: {
@@ -72,17 +68,17 @@ export const config = {
     iceServers: [
       {
         urls: [
-          'stun:standard.relay.metered.ca:80',
-          'stun:standard.relay.metered.ca:443'
+          `stun:${runtimeConfig.turnServerHost}:${runtimeConfig.turnServerPort}`,
+          'stun:stun.l.google.com:19302'
         ]
       },
       {
         urls: [
-          'turn:standard.relay.metered.ca:80',
-          'turn:standard.relay.metered.ca:443'
+          `turn:${runtimeConfig.turnServerHost}:${runtimeConfig.turnServerPort}`,
+          `turns:${runtimeConfig.turnServerHost}:5349`
         ],
-        username: process.env.NEXT_PUBLIC_METERED_TURN_USERNAME || '',
-        credential: process.env.NEXT_PUBLIC_METERED_TURN_CREDENTIAL || ''
+        username: runtimeConfig.turnUsername,
+        credential: runtimeConfig.turnPassword
       }
     ],
     // Optimize ICE gathering

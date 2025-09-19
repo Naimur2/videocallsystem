@@ -15,7 +15,7 @@ import {
 
 // Mobile-specific config
 const config = {
-  socketUrl: 'https://satisfaction-budget-symbols-happens.trycloudflare.com',
+  socketUrl: 'https://meeting.naimur-rahaman.com',
   socket: {
     timeout: 20000,
     reconnectionAttempts: 5,

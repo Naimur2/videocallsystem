@@ -1,38 +1,38 @@
 /**
- * Metered TURN Server Configuration for WebRTC
- * This provides comprehensive TURN server support for MediaSoup on Heroku
+ * CoTURN Server Configuration for WebRTC
+ * Self-hosted TURN server for enterprise-grade MediaSoup connectivity
  */
 
 export const meteredTurnConfig = {
   iceServers: [
     // STUN servers for NAT detection
     {
-      urls: "stun:stun.relay.metered.ca:80",
+      urls: "stun:meeting.naimur-rahaman.com:3478",
     },
     {
       urls: "stun:stun.l.google.com:19302",
     },
     
-    // TURN servers for relay when direct connection fails
+    // CoTURN servers for relay when direct connection fails
     {
-      urls: "turn:standard.relay.metered.ca:80",
-      username: "0f1eee4f1c2a872fbb855d62",
-      credential: "q6s07WgG7GLIq6WM",
+      urls: "turn:meeting.naimur-rahaman.com:3478",
+      username: "mediasoup",
+      credential: "mediasoupTurn2024!",
     },
     {
-      urls: "turn:standard.relay.metered.ca:80?transport=tcp",
-      username: "0f1eee4f1c2a872fbb855d62",
-      credential: "q6s07WgG7GLIq6WM",
+      urls: "turn:meeting.naimur-rahaman.com:3478?transport=tcp",
+      username: "mediasoup",
+      credential: "mediasoupTurn2024!",
     },
     {
-      urls: "turn:standard.relay.metered.ca:443",
-      username: "0f1eee4f1c2a872fbb855d62",
-      credential: "q6s07WgG7GLIq6WM",
+      urls: "turns:meeting.naimur-rahaman.com:5349",
+      username: "mediasoup",
+      credential: "mediasoupTurn2024!",
     },
     {
-      urls: "turns:standard.relay.metered.ca:443?transport=tcp",
-      username: "0f1eee4f1c2a872fbb855d62",
-      credential: "q6s07WgG7GLIq6WM",
+      urls: "turns:meeting.naimur-rahaman.com:5349?transport=tcp",
+      username: "mediasoup",
+      credential: "mediasoupTurn2024!",
     },
   ],
   iceCandidatePoolSize: 10,
@@ -44,11 +44,11 @@ export const meteredTurnConfig = {
  * Get TURN configuration with environment variable fallback
  */
 export function getTurnConfiguration() {
-  // Use environment variables if available, otherwise fall back to Metered
-  const turnHost = process.env.NEXT_PUBLIC_TURN_SERVER_HOST || 'standard.relay.metered.ca';
-  const turnPort = process.env.NEXT_PUBLIC_TURN_SERVER_PORT || '80';
-  const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME || '0f1eee4f1c2a872fbb855d62';
-  const turnPassword = process.env.NEXT_PUBLIC_TURN_PASSWORD || 'q6s07WgG7GLIq6WM';
+  // Use environment variables if available, otherwise fall back to self-hosted CoTURN
+  const turnHost = process.env.NEXT_PUBLIC_TURN_SERVER_HOST || 'meeting.naimur-rahaman.com';
+  const turnPort = process.env.NEXT_PUBLIC_TURN_SERVER_PORT || '3478';
+  const turnUsername = process.env.NEXT_PUBLIC_TURN_USERNAME || 'mediasoup';
+  const turnPassword = process.env.NEXT_PUBLIC_TURN_PASSWORD || 'mediasoupTurn2024!';
   
   return {
     iceServers: [
@@ -69,12 +69,12 @@ export function getTurnConfiguration() {
         credential: turnPassword,
       },
       {
-        urls: `turn:${turnHost}:443`,
+        urls: `turns:${turnHost}:5349`,
         username: turnUsername,
         credential: turnPassword,
       },
       {
-        urls: `turns:${turnHost}:443?transport=tcp`,
+        urls: `turns:${turnHost}:5349?transport=tcp`,
         username: turnUsername,
         credential: turnPassword,
       },
