@@ -13,8 +13,14 @@
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     depends_on:
-      - app
+      app:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Main application
   app:
@@ -46,10 +52,19 @@
     ports:
       - "40000-49999:40000-49999/udp"  # WebRTC media ports
     depends_on:
-      - postgres
-      - redis
-      - coturn
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      coturn:
+        condition: service_started
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   # PostgreSQL database
   postgres:
@@ -61,6 +76,11 @@
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis cache
   redis:
@@ -68,6 +88,11 @@
     volumes:
       - redis_data:/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
 
   # CoTURN server for WebRTC NAT traversal
   coturn:
