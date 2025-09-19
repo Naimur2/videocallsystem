@@ -3,7 +3,8 @@ FROM coturn/coturn:4.6.2-alpine
 # Install additional packages
 RUN apk add --no-cache \
     openssl \
-    ca-certificates
+    ca-certificates \
+    netcat-openbsd
 
 # Create coturn user and directories
 RUN addgroup -g 1000 coturn && \

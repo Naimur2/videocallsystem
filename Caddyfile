@@ -7,12 +7,12 @@
     
     # Backend API routes
     handle /api/* {
-        reverse_proxy app:3001
+        reverse_proxy app:8000
     }
     
     # Socket.IO routes
     handle /socket.io/* {
-        reverse_proxy app:3001 {
+        reverse_proxy app:8000 {
             header_up Upgrade {http.request.header.Upgrade}
             header_up Connection {http.request.header.Connection}
         }
@@ -28,12 +28,12 @@ meeting.naimur-rahaman.com {
     
     # Backend API routes
     handle /api/* {
-        reverse_proxy app:3001
+        reverse_proxy app:8000
     }
     
     # Socket.IO routes
     handle /socket.io/* {
-        reverse_proxy app:3001 {
+        reverse_proxy app:8000 {
             header_up Upgrade {http.request.header.Upgrade}
             header_up Connection {http.request.header.Connection}
         }
@@ -67,12 +67,12 @@ meeting.naimur-rahaman.com {
     
     # Backend API routes
     handle /api/* {
-        reverse_proxy app:3001
+        reverse_proxy app:8000
     }
     
     # Socket.IO routes
     handle /socket.io/* {
-        reverse_proxy app:3001 {
+        reverse_proxy app:8000 {
             header_up Upgrade {http.request.header.Upgrade}
             header_up Connection {http.request.header.Connection}
         }

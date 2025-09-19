@@ -28,7 +28,8 @@ RUN apk add --no-cache \
     g++ \
     gcc \
     libc-dev \
-    linux-headers
+    linux-headers \
+    curl
 
 WORKDIR /app
 
@@ -52,8 +53,8 @@ RUN cd frontend && bun run build
 
 # Create startup script
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'cd /app/backend && node src/index.js &' >> /app/start.sh && \
-    echo 'cd /app/frontend && bun start' >> /app/start.sh && \
+    echo 'cd /app/backend && PORT=8000 node src/index.js &' >> /app/start.sh && \
+    echo 'cd /app/frontend && bun start --port 3000' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 # Expose ports
@@ -61,7 +62,7 @@ EXPOSE 3000 8000 40000-49999/udp
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # Start both applications
 CMD ["/app/start.sh"]
