@@ -99,31 +99,74 @@ jobs:
         echo "Stopping existing services..."
         sudo docker compose -f docker-compose.yml -f docker-compose.production.yml down --remove-orphans || true
         
-        echo "🔍 Checking final compose configuration..."
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml config --services
-        echo "App service configuration:"
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml config | grep -A 10 -B 5 "app:"
+        # Create a temporary base compose without build context for app
+        echo "� Creating production-ready compose file..."
+        cp docker-compose.yml docker-compose.temp.yml
         
-        # Ensure we're not building anything
-        echo "🚫 Killing any existing build processes..."
-        sudo pkill -f "docker.*build" || true
-        sudo docker system prune -f --volumes || true
+        # Remove build context from app service in temp file
+        sed -i '/^  app:/,/^  [a-zA-Z]/ { /build:/,/^    [a-zA-Z]/d; }' docker-compose.temp.yml
         
-        echo "Starting services with pre-built GHCR image..."
-        echo "Using flags: --pull always --no-build --force-recreate --wait"
-        timeout 300 sudo docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --pull always --no-build --force-recreate --wait --progress=plain || {
-          echo "❌ Deployment timed out after 5 minutes"
-          echo "Checking logs..."
-          sudo docker compose -f docker-compose.yml -f docker-compose.production.yml logs --tail=50
-          exit 1
-        }
+        echo "🔍 Verifying no build context in app service..."
+        if grep -A 20 "^  app:" docker-compose.temp.yml | grep -q "build:"; then
+          echo "❌ Build context still present, using different approach..."
+          # Create minimal production compose
+          cat > docker-compose.production-clean.yml << 'EOF'
+        services:
+          app:
+            image: ghcr.io/naimur2/videocallsystem:latest
+            environment:
+              - DATABASE_URL=${DATABASE_URL}
+              - REDIS_URL=${REDIS_URL}
+              - JWT_SECRET=${JWT_SECRET}
+              - SESSION_SECRET=${SESSION_SECRET}
+              - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
+              - RTC_MIN_PORT=${RTC_MIN_PORT}
+              - RTC_MAX_PORT=${RTC_MAX_PORT}
+              - TURN_USERNAME=${TURN_USERNAME}
+              - TURN_CREDENTIAL=${TURN_CREDENTIAL}
+              - TURN_SERVER=${TURN_SERVER}
+              - STUN_SERVER=${STUN_SERVER}
+              - NODE_ENV=production
+              - DOMAIN=${DOMAIN}
+              - PORT=${PORT}
+              - CORS_ORIGIN=${CORS_ORIGIN}
+            depends_on:
+              postgres:
+                condition: service_healthy
+              redis:
+                condition: service_healthy
+            restart: unless-stopped
+            healthcheck:
+              test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+              interval: 30s
+              timeout: 10s
+              retries: 3
+        EOF
+          
+          echo "Starting with production-clean compose..."
+          timeout 300 sudo docker compose -f docker-compose.yml -f docker-compose.production-clean.yml up -d --pull always --no-build --force-recreate --wait || {
+            echo "❌ Deployment timed out after 5 minutes"
+            sudo docker compose -f docker-compose.yml -f docker-compose.production-clean.yml logs --tail=50
+            exit 1
+          }
+        else
+          echo "✅ Build context removed, proceeding with deployment..."
+          timeout 300 sudo docker compose -f docker-compose.temp.yml -f docker-compose.production.yml up -d --pull always --no-build --force-recreate --wait || {
+            echo "❌ Deployment timed out after 5 minutes"
+            sudo docker compose -f docker-compose.temp.yml -f docker-compose.production.yml logs --tail=50
+            exit 1
+          }
+        fi
+        
         echo "✅ All services are healthy and ready!"
     
     - name: Verify deployment
       run: |
         echo "📊 Final service status:"
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml ps
-        echo "🏥 Health check status:"
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
-        echo "🔍 Recent logs (last 5 lines per service):"
-        sudo docker compose -f docker-compose.yml -f docker-compose.production.yml logs --tail=5
+        if [ -f docker-compose.production-clean.yml ]; then
+          sudo docker compose -f docker-compose.yml -f docker-compose.production-clean.yml ps
+          sudo docker compose -f docker-compose.yml -f docker-compose.production-clean.yml logs --tail=5
+        else
+          sudo docker compose -f docker-compose.temp.yml -f docker-compose.production.yml ps
+          sudo docker compose -f docker-compose.temp.yml -f docker-compose.production.yml logs --tail=5
+        fi
