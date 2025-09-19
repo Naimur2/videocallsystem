@@ -1,7 +1,7 @@
-# Multi-stage build for production
+# Multi-stage build for production backend
 FROM node:20-alpine AS base
 
-# Install system dependencies
+# Install system dependencies for MediaSoup and native modules
 RUN apk add --no-cache \
     make \
     gcc \
@@ -9,56 +9,61 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     linux-headers \
-    curl
+    curl \
+    git \
+    dumb-init
 
 WORKDIR /app
 
-# Install dependencies
+# Dependencies stage
 FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+COPY package.json ./
+# Install production dependencies without lock file conflicts
+RUN npm install --production --no-package-lock --verbose && \
+    npm cache clean --force
 
-# Build stage
+# Build stage  
 FROM base AS builder
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+# Install all dependencies including dev dependencies
+RUN npm install --no-package-lock --verbose
 COPY . .
-RUN npm run build
+# Build with fallback
+RUN npm run build || npx tsc || (echo "Direct tsc build..." && npx tsc --outDir dist src/**/*.ts)
 
-# Production image
+# Production runtime
 FROM node:20-alpine AS runner
-WORKDIR /app
 
-# Install production system dependencies
+# Install runtime dependencies
 RUN apk add --no-cache \
     curl \
     dumb-init
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 mediasoup
+WORKDIR /app
 
-# Copy built application and dependencies
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S backend -u 1001
+
+# Copy application files
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 
-# Create necessary directories
+# Create necessary directories and set permissions
 RUN mkdir -p /app/logs && \
-    chown -R mediasoup:nodejs /app
+    chown -R backend:nodejs /app
 
-USER mediasoup
-
-EXPOSE 3001
-EXPOSE 10000-10100/udp
-EXPOSE 10000-10100/tcp
-
-ENV NODE_ENV=production
-ENV PORT=3001
+# Switch to non-root user
+USER backend
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:3001/api/v1/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
+# Expose port
+EXPOSE 8080
+
+# Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]

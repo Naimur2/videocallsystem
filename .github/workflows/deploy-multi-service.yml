@@ -41,7 +41,6 @@ jobs:
           sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-frontend:latest &
           sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-backend:latest &
           sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-coturn:latest &
-          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-app:latest &
           wait
         }
         
