@@ -1,461 +1,68 @@
-name: Deploy MediaSoup Video Call with GHCR
+﻿name: Build and Deploy to EC2
 
 on:
   push:
-    branches: [ main, production ]
-  pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_FRONTEND: mediasoup-frontend
-  IMAGE_NAME_BACKEND: mediasoup-backend
-  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-  ECS_SERVICE_FRONTEND: mediasoup-frontend-service
-  ECS_SERVICE_BACKEND: mediasoup-backend-service
-  ECS_CLUSTER: mediasoup-cluster
-  CONTAINER_NAME_FRONTEND: frontend
-  CONTAINER_NAME_BACKEND: backend
-  # Environment detection
-  ENVIRONMENT: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  test:
-    name: Test Application
+  build:
     runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-
-    - name: Install Backend Dependencies
-      working-directory: ./videocallbackend
-      run: npm ci
-
-    - name: Install Frontend Dependencies
-      working-directory: ./videocall
-      run: npm ci
-
-    - name: Run Backend Tests
-      working-directory: ./videocallbackend
-      run: |
-        npm run test || echo "No tests configured yet"
-        npm run lint || echo "No linting configured yet"
-
-    - name: Run Frontend Tests
-      working-directory: ./videocall
-      run: |
-        npm run test || echo "No tests configured yet"
-        npm run lint || echo "No linting configured yet"
-
-    - name: Build Frontend
-      working-directory: ./videocall
-      run: npm run build
-
-    - name: Build Backend
-      working-directory: ./videocallbackend
-      run: npm run build
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: test
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: 'trivy-results.sarif'
-
-  build-and-push:
-    name: Build and Push to GHCR
-    runs-on: ubuntu-latest
-    needs: [test, security]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production'
-    
     permissions:
       contents: read
       packages: write
     
-    env:
-      # Load all environment variables from single secret
-      ENV_VARS: ${{ secrets.ENV_VARS }}
-
-    outputs:
-      backend-image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}
-      frontend-image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}
-
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Log in to GitHub Container Registry
+    
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Extract backend metadata
-      id: backend-meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=${{ env.ENVIRONMENT }}
-
-    - name: Build and push backend image
+    
+    - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./videocallbackend
-        file: ./videocallbackend/Dockerfile
-        platforms: linux/amd64,linux/arm64
+        context: .
         push: true
-        tags: ${{ steps.backend-meta.outputs.tags }}
-        labels: ${{ steps.backend-meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          NODE_ENV=${{ env.NODE_ENV }}
-          DATABASE_URL=${{ secrets.DATABASE_URL }}
-          REDIS_URL=${{ secrets.REDIS_URL }}
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          MEDIASOUP_ANNOUNCED_IP=${{ env.MEDIASOUP_ANNOUNCED_IP }}
-          TURN_USERNAME=${{ env.TURN_USERNAME }}
-          TURN_CREDENTIAL=${{ env.TURN_CREDENTIAL }}
-          RTC_MIN_PORT=${{ secrets.RTC_MIN_PORT || '40000' }}
-          RTC_MAX_PORT=${{ secrets.RTC_MAX_PORT || '49999' }}
-          BUILDKIT_INLINE_CACHE=1
-
-    - name: Extract frontend metadata
-      id: frontend-meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}
         tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=${{ env.ENVIRONMENT }}
+          ghcr.io/${{ github.repository }}:latest
+          ghcr.io/${{ github.repository }}:${{ github.sha }}
+        labels: |
+          org.opencontainers.image.source=${{ github.event.repository.html_url }}
+          org.opencontainers.image.revision=${{ github.sha }}
 
-    - name: Build and push frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./videocall
-        file: ./videocall/Dockerfile
-        platforms: linux/amd64,linux/arm64
-        push: true
-        tags: ${{ steps.frontend-meta.outputs.tags }}
-        labels: ${{ steps.frontend-meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          NODE_ENV=${{ env.NODE_ENV }}
-          NEXT_PUBLIC_API_URL=${{ env.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_SOCKET_URL=${{ env.NEXT_PUBLIC_SOCKET_URL }}
-          NEXT_PUBLIC_TURN_SERVER_URL=${{ env.NEXT_PUBLIC_TURN_SERVER_URL }}
-          NEXT_PUBLIC_STUN_SERVER_URL=${{ env.NEXT_PUBLIC_STUN_SERVER_URL }}
-          BUILDKIT_INLINE_CACHE=1
-
-    - name: Output image URLs
-      run: |
-        echo "Backend Image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}"
-        echo "Frontend Image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}"
-
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: build-and-push
+  deploy:
+    needs: build
+    runs-on: self-hosted
     if: github.ref == 'refs/heads/main'
-    environment: staging
-
+    
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Create ECS task definition for backend
+    
+    - name: Create environment file
       run: |
-        cat > backend-task-definition.json << EOF
-        {
-          "family": "mediasoup-backend-staging",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "cpu": "512",
-          "memory": "1024",
-          "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
-          "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskRole",
-          "containerDefinitions": [
-            {
-              "name": "${{ env.CONTAINER_NAME_BACKEND }}",
-              "image": "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}",
-              "portMappings": [
-                {
-                  "containerPort": 3001,
-                  "protocol": "tcp"
-                },
-                {
-                  "containerPort": 40000,
-                  "hostPort": 40000,
-                  "protocol": "udp"
-                }
-              ],
-              "essential": true,
-              "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                  "awslogs-group": "/ecs/mediasoup-backend-staging",
-                  "awslogs-region": "${{ env.AWS_REGION }}",
-                  "awslogs-stream-prefix": "ecs"
-                }
-              },
-              "environment": [
-                {"name": "ENV_VARS", "value": "${{ secrets.ENV_VARS }}"}
-              ],
-              "repositoryCredentials": {
-                "credentialsParameter": "arn:aws:secretsmanager:${{ env.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:secret:ghcr-credentials"
-              }
-            }
-          ]
-        }
+        cat > .env << 'EOF'
+        ${{ secrets.ENV_VARS }}
         EOF
-
-    - name: Deploy Backend to Amazon ECS service
+    
+    - name: Pull latest image
+      run: docker pull ghcr.io/${{ github.repository }}:latest
+    
+    - name: Deploy with docker-compose
       run: |
-        aws ecs register-task-definition --cli-input-json file://backend-task-definition.json
-        aws ecs update-service --cluster mediasoup-staging-cluster --service mediasoup-backend-staging --task-definition mediasoup-backend-staging --force-new-deployment
-        aws ecs wait services-stable --cluster mediasoup-staging-cluster --services mediasoup-backend-staging
-
-    - name: Create ECS task definition for frontend
+        docker-compose down || true
+        docker-compose up -d
+    
+    - name: Wait for services
       run: |
-        cat > frontend-task-definition.json << EOF
-        {
-          "family": "mediasoup-frontend-staging",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "cpu": "256",
-          "memory": "512",
-          "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
-          "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskRole",
-          "containerDefinitions": [
-            {
-              "name": "${{ env.CONTAINER_NAME_FRONTEND }}",
-              "image": "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}",
-              "portMappings": [
-                {
-                  "containerPort": 3000,
-                  "protocol": "tcp"
-                }
-              ],
-              "essential": true,
-              "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                  "awslogs-group": "/ecs/mediasoup-frontend-staging",
-                  "awslogs-region": "${{ env.AWS_REGION }}",
-                  "awslogs-stream-prefix": "ecs"
-                }
-              },
-              "environment": [
-                {"name": "ENV_VARS", "value": "${{ secrets.ENV_VARS }}"}
-              ],
-              "repositoryCredentials": {
-                "credentialsParameter": "arn:aws:secretsmanager:${{ env.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:secret:ghcr-credentials"
-              }
-            }
-          ]
-        }
-        EOF
-
-    - name: Deploy Frontend to Amazon ECS service
-      run: |
-        aws ecs register-task-definition --cli-input-json file://frontend-task-definition.json
-        aws ecs update-service --cluster mediasoup-staging-cluster --service mediasoup-frontend-staging --task-definition mediasoup-frontend-staging --force-new-deployment
-        aws ecs wait services-stable --cluster mediasoup-staging-cluster --services mediasoup-frontend-staging
-
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.ref == 'refs/heads/production'
-    environment: production
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Create ECS task definition for backend
-      run: |
-        cat > backend-task-definition.json << EOF
-        {
-          "family": "mediasoup-backend-prod",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "cpu": "1024",
-          "memory": "2048",
-          "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
-          "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskRole",
-          "containerDefinitions": [
-            {
-              "name": "${{ env.CONTAINER_NAME_BACKEND }}",
-              "image": "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}",
-              "portMappings": [
-                {
-                  "containerPort": 3001,
-                  "protocol": "tcp"
-                },
-                {
-                  "containerPort": 40000,
-                  "hostPort": 40000,
-                  "protocol": "udp"
-                }
-              ],
-              "essential": true,
-              "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                  "awslogs-group": "/ecs/mediasoup-backend-prod",
-                  "awslogs-region": "${{ env.AWS_REGION }}",
-                  "awslogs-stream-prefix": "ecs"
-                }
-              },
-              "environment": [
-                {"name": "ENV_VARS", "value": "${{ secrets.ENV_VARS }}"}
-              ],
-              "repositoryCredentials": {
-                "credentialsParameter": "arn:aws:secretsmanager:${{ env.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:secret:ghcr-credentials"
-              }
-            }
-          ]
-        }
-        EOF
-
-    - name: Deploy Backend to Amazon ECS service
-      run: |
-        aws ecs register-task-definition --cli-input-json file://backend-task-definition.json
-        aws ecs update-service --cluster mediasoup-prod-cluster --service mediasoup-backend-prod --task-definition mediasoup-backend-prod --force-new-deployment
-        aws ecs wait services-stable --cluster mediasoup-prod-cluster --services mediasoup-backend-prod
-
-    - name: Create ECS task definition for frontend
-      run: |
-        cat > frontend-task-definition.json << EOF
-        {
-          "family": "mediasoup-frontend-prod",
-          "networkMode": "awsvpc",
-          "requiresCompatibilities": ["FARGATE"],
-          "cpu": "512",
-          "memory": "1024",
-          "executionRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskExecutionRole",
-          "taskRoleArn": "arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/ecsTaskRole",
-          "containerDefinitions": [
-            {
-              "name": "${{ env.CONTAINER_NAME_FRONTEND }}",
-              "image": "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}",
-              "portMappings": [
-                {
-                  "containerPort": 3000,
-                  "protocol": "tcp"
-                }
-              ],
-              "essential": true,
-              "logConfiguration": {
-                "logDriver": "awslogs",
-                "options": {
-                  "awslogs-group": "/ecs/mediasoup-frontend-prod",
-                  "awslogs-region": "${{ env.AWS_REGION }}",
-                  "awslogs-stream-prefix": "ecs"
-                }
-              },
-              "environment": [
-                {"name": "ENV_VARS", "value": "${{ secrets.ENV_VARS }}"}
-              ],
-              "repositoryCredentials": {
-                "credentialsParameter": "arn:aws:secretsmanager:${{ env.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:secret:ghcr-credentials"
-              }
-            }
-          ]
-        }
-        EOF
-
-    - name: Deploy Frontend to Amazon ECS service
-      run: |
-        aws ecs register-task-definition --cli-input-json file://frontend-task-definition.json
-        aws ecs update-service --cluster mediasoup-prod-cluster --service mediasoup-frontend-prod --task-definition mediasoup-frontend-prod --force-new-deployment
-        aws ecs wait services-stable --cluster mediasoup-prod-cluster --services mediasoup-frontend-prod
-
-    - name: Run Production Health Check
-      run: |
-        echo "Waiting for deployment to be ready..."
+        echo "Waiting for services to start..."
         sleep 30
-        
-        # Get the ALB URL from AWS
-        ALB_URL=$(aws elbv2 describe-load-balancers --names mediasoup-prod-alb --query 'LoadBalancers[0].DNSName' --output text)
-        
-        # Health check
-        for i in {1..10}; do
-          if curl -f http://$ALB_URL/health; then
-            echo "✅ Production deployment successful!"
-            break
-          else
-            echo "⏳ Waiting for health check... (attempt $i/10)"
-            sleep 30
-          fi
-        done
-
-  notify:
-    name: Notify Deployment Status
-    runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always()
-
-    steps:
-    - name: Notify Success
-      if: success()
-      run: |
-        echo "🎉 Deployment completed successfully!"
-        # Add Slack/Discord/Email notification here
-
-    - name: Notify Failure
-      if: failure()
-      run: |
-        echo "❌ Deployment failed!"
-        # Add failure notification here
+        docker-compose ps

@@ -1,121 +1,322 @@
-# MediaSoup Video Call - Production Ready Video Conferencing Platform
+# MediaSoup Video Call - Complete Setup# MediaSoup Video Call - Simple Setup# MediaSoup Video Call - Production Ready Video Conferencing Platform
 
-[![Build Status](https://github.com/your-username/mediasoup-video-call/workflows/Deploy/badge.svg)](https://github.com/your-username/mediasoup-video-call/actions)
-[![Security Rating](https://img.shields.io/badge/security-A-green)](https://github.com/your-username/mediasoup-video-call/security)
-[![AWS Deployment](https://img.shields.io/badge/AWS-Ready-orange)](./docs/AWS_DEPLOYMENT_GUIDE.md)
 
-A modern, scalable real-time video calling application built with **MediaSoup WebRTC**, **Next.js 15**, and **Express.js**. Features enterprise-grade deployment on AWS with complete CI/CD automation.
 
-## ✨ Features
+## 🚀 Quick Start
+
+
+
+### Local Development## 🚀 Quick Start[![Build Status](https://github.com/your-username/mediasoup-video-call/workflows/Deploy/badge.svg)](https://github.com/your-username/mediasoup-video-call/actions)
+
+
+
+1. **Copy environment file:**[![Security Rating](https://img.shields.io/badge/security-A-green)](https://github.com/your-username/mediasoup-video-call/security)
+
+   ```bash
+
+   cp .env.local .env### Local Development[![AWS Deployment](https://img.shields.io/badge/AWS-Ready-orange)](./docs/AWS_DEPLOYMENT_GUIDE.md)
+
+   ```
+
+```bash
+
+2. **Start services:**
+
+   ```bashdocker-compose up -dA modern, scalable real-time video calling application built with **MediaSoup WebRTC**, **Next.js 15**, and **Express.js**. Features enterprise-grade deployment on AWS with complete CI/CD automation.
+
+   docker-compose up -d
+
+   ``````
+
+
+
+3. **Access application:**## ✨ Features
+
+   - Frontend: http://localhost
+
+   - Backend API: http://localhost/api### Production Deployment
+
+   - WebRTC ports: 40000-49999/UDP
 
 ### 🎥 Video Conferencing
-- **Multi-party Video Calls**: Support for up to 50 participants
-- **Screen Sharing**: High-quality desktop and application sharing
-- **Chat Integration**: Real-time messaging during calls
-- **Audio Controls**: Mute/unmute, noise suppression
-- **Video Quality**: Adaptive bitrate with VP8/VP9/H.264 codecs
 
-### 🏗️ Technical Excellence
-- **WebRTC Technology**: MediaSoup for enterprise-grade real-time communication
-- **Modern Frontend**: Next.js 15 with React 19 and TypeScript
-- **Microservices Backend**: Express.js with Socket.IO for real-time signaling
-- **Database Layer**: PostgreSQL with Redis for session management
-- **Container Ready**: Full Docker orchestration with multi-stage builds
+### Production Deployment to EC2
 
-### 🚀 Production Deployment
-- **AWS Native**: ECS Fargate, RDS, ElastiCache, ALB deployment
-- **Container Registry**: GitHub Container Registry (GHCR) or AWS ECR support
-- **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
-- **Infrastructure as Code**: CloudFormation templates for reproducible deployments
-- **Security First**: Vulnerability scanning, secrets management, SSL/TLS
+1. **Setup GitHub Secrets:**- **Multi-party Video Calls**: Support for up to 50 participants
+
+#### 1. Setup GitHub Secrets
+
+   - `EC2_HOST` - Your EC2 server IP- **Screen Sharing**: High-quality desktop and application sharing
+
+Go to GitHub repository → Settings → Secrets and variables → Actions → New repository secret
+
+   - `EC2_USER` - Username (usually `ubuntu`)- **Chat Integration**: Real-time messaging during calls
+
+**Required secrets:**
+
+   - `EC2_KEY` - Your private SSH key- **Audio Controls**: Mute/unmute, noise suppression
+
+- **`EC2_HOST`** - Your EC2 public IP address
+
+- **`EC2_USER`** - SSH username (usually `ubuntu`)- **Video Quality**: Adaptive bitrate with VP8/VP9/H.264 codecs
+
+- **`EC2_KEY`** - Your EC2 private SSH key (entire key content)
+
+- **`ENV_VARS`** - Copy content from `.env.production` file:2. **Push to GitHub:**
+
+
+
+```env   ```bash### 🏗️ Technical Excellence
+
+DATABASE_URL=postgresql://mediasoup:YOUR_SECURE_PASSWORD@postgres:5432/mediasoup
+
+REDIS_URL=redis://redis:6379   git push origin main- **WebRTC Technology**: MediaSoup for enterprise-grade real-time communication
+
+JWT_SECRET=GENERATE-A-SECURE-32-CHARACTER-SECRET-HERE
+
+SESSION_SECRET=GENERATE-ANOTHER-32-CHARACTER-SECRET-HERE   ```- **Modern Frontend**: Next.js 15 with React 19 and TypeScript
+
+TURN_USERNAME=your-turn-username
+
+TURN_CREDENTIAL=your-turn-password- **Microservices Backend**: Express.js with Socket.IO for real-time signaling
+
+TURN_SERVER=turn:your-turn-server:3478
+
+STUN_SERVER=stun:your-stun-server:34783. **Done!** GitHub Actions will build and deploy to your EC2.- **Database Layer**: PostgreSQL with Redis for session management
+
+MEDIASOUP_ANNOUNCED_IP=YOUR-EC2-PUBLIC-IP
+
+RTC_MIN_PORT=40000- **Container Ready**: Full Docker orchestration with multi-stage builds
+
+RTC_MAX_PORT=49999
+
+NODE_ENV=production## 📋 What This Does
+
+DOMAIN=your-domain.com
+
+FRONTEND_PORT=3000### 🚀 Production Deployment
+
+BACKEND_PORT=3001
+
+POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD- **One Dockerfile** - Builds frontend + backend in single container- **AWS Native**: ECS Fargate, RDS, ElastiCache, ALB deployment
+
+```
+
+- **One docker-compose.yml** - App + Postgres + Redis- **Container Registry**: GitHub Container Registry (GHCR) or AWS ECR support
+
+#### 2. EC2 Security Groups
+
+- **One GitHub workflow** - Build → Push to GHCR → Deploy to EC2- **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
+
+Ensure your EC2 security group allows:
+
+- **Port 22** (SSH) - Your IP- **Infrastructure as Code**: CloudFormation templates for reproducible deployments
+
+- **Port 80** (HTTP) - 0.0.0.0/0
+
+- **Port 443** (HTTPS) - 0.0.0.0/0## 🔧 Configuration- **Security First**: Vulnerability scanning, secrets management, SSL/TLS
+
+- **Ports 40000-49999 UDP** (WebRTC) - 0.0.0.0/0
+
 - **Monitoring**: CloudWatch dashboards, logs, and alerting
 
-## 🏃‍♂️ Quick Start
+#### 3. Domain Setup (Optional)
 
-### Local Development
-```bash
-# Clone the repository
-git clone https://github.com/your-username/mediasoup-video-call.git
-cd mediasoup-video-call
+Edit environment variables in `docker-compose.yml`:
 
-# Start the application with Docker
-.\start.ps1
+Point your domain A record to your EC2 IP:
+
+```- Database credentials## 🏃‍♂️ Quick Start
+
+your-domain.com → YOUR_EC2_IP
+
+```- Redis configuration
+
+
+
+#### 4. Deploy- Any other app settings### Local Development
+
+
+
+```bash```bash
+
+git push origin main
+
+```## 📡 Ports# Clone the repository
+
+
+
+GitHub Actions will automatically:git clone https://github.com/your-username/mediasoup-video-call.git
+
+1. Build Docker image
+
+2. Push to GitHub Container Registry- **80** - Main application (frontend)cd mediasoup-video-call
+
+3. Deploy to your EC2 with Caddy reverse proxy
+
+4. Setup automatic SSL (if domain configured)- **3001** - Backend API
+
+
+
+## 📋 Architecture- **40000-49999/UDP** - WebRTC media# Start the application with Docker
+
+
+
+```.\start.ps1
+
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+
+│    Caddy    │    │     App     │    │  Database   │That's it! Simple and clean. 🎉```
+
+│(Reverse     │◄──►│ Frontend +  │◄──►│(PostgreSQL) │
+
+│ Proxy)      │    │  Backend    │    │             │The application will be available at:
+
+│  :80, :443  │    │ :3000,:3001 │    └─────────────┘- **Frontend**: http://localhost:3000
+
+└─────────────┘    └─────────────┘           │- **Backend API**: http://localhost:3001
+
+                          │            ┌─────────────┐- **Admin Dashboard**: http://localhost:8080 (Nginx proxy)
+
+                          │            │    Redis    │
+
+                          └──────────►│   (Cache)   │### Production Deployment on AWS
+
+                                       └─────────────┘For complete AWS deployment with GHCR:
+
 ```
 
-The application will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:3001
-- **Admin Dashboard**: http://localhost:8080 (Nginx proxy)
-
-### Production Deployment on AWS
-For complete AWS deployment with GHCR:
-
 ```bash
-# 1. Set up GHCR credentials for AWS
+
+## 🔧 Configuration Files# 1. Set up GHCR credentials for AWS
+
 .\scripts\setup-ghcr.ps1 -GitHubToken "ghp_xxxx" -GitHubUsername "your-username"
 
-# 2. Set up AWS infrastructure
-.\scripts\aws-setup.ps1 -Region us-east-1 -CreateSecrets -SetupMonitoring -CreateECR
+- **`Dockerfile`** - Builds frontend + backend in single container
 
-# 3. Deploy to staging
-.\scripts\deploy.ps1 -Environment staging
+- **`docker-compose.yml`** - Local development with Caddy# 2. Set up AWS infrastructure
 
-# 4. Deploy to production
+- **`Caddyfile`** - Reverse proxy configuration.\scripts\aws-setup.ps1 -Region us-east-1 -CreateSecrets -SetupMonitoring -CreateECR
+
+- **`.env.local`** - Local development environment
+
+- **`.env.production`** - Production environment template# 3. Deploy to staging
+
+- **`.github/workflows/deploy.yml`** - CI/CD pipeline.\scripts\deploy.ps1 -Environment staging
+
+
+
+## 🔑 Environment Variables# 4. Deploy to production
+
 git checkout production
-git push origin production
-```
 
-📖 **Deployment guides**: 
-- [GHCR Deployment Guide](./docs/GHCR_DEPLOYMENT_GUIDE.md) - GitHub Container Registry setup
-- [AWS Deployment Guide](./docs/AWS_DEPLOYMENT_GUIDE.md) - Complete AWS infrastructure
+### Required for Production:git push origin production
 
-## 🛠️ Technology Stack
+- `DOMAIN` - Your domain (e.g., your-domain.com)```
 
-### Frontend (`./videocall/`)
+- `MEDIASOUP_ANNOUNCED_IP` - Your EC2 public IP
+
+- `JWT_SECRET` - 32+ character secret📖 **Deployment guides**: 
+
+- `SESSION_SECRET` - 32+ character secret- [GHCR Deployment Guide](./docs/GHCR_DEPLOYMENT_GUIDE.md) - GitHub Container Registry setup
+
+- `POSTGRES_PASSWORD` - Secure database password- [AWS Deployment Guide](./docs/AWS_DEPLOYMENT_GUIDE.md) - Complete AWS infrastructure
+
+
+
+### Optional:## 🛠️ Technology Stack
+
+- `TURN_USERNAME/TURN_CREDENTIAL` - For NAT traversal
+
+- `TURN_SERVER/STUN_SERVER` - TURN/STUN servers### Frontend (`./videocall/`)
+
 - **Framework**: Next.js 15.5.2 with App Router
-- **UI Library**: React 19 with TypeScript
+
+## 🚨 Security Checklist- **UI Library**: React 19 with TypeScript
+
 - **Styling**: Tailwind CSS with responsive design
-- **State Management**: Zustand for client-side state
-- **WebRTC Client**: MediaSoup Client with device detection
 
-### Backend (`./videocallbackend/`)
-- **Runtime**: Node.js 20+ with Express.js
+- [ ] Generate strong JWT and session secrets- **State Management**: Zustand for client-side state
+
+- [ ] Use secure database password- **WebRTC Client**: MediaSoup Client with device detection
+
+- [ ] Configure proper security groups
+
+- [ ] Setup domain with SSL (Caddy auto-generates)### Backend (`./videocallbackend/`)
+
+- [ ] Configure TURN server for production- **Runtime**: Node.js 20+ with Express.js
+
 - **WebRTC Server**: MediaSoup 3.x for media routing
-- **Real-time Communication**: Socket.IO for signaling
-- **Database**: PostgreSQL 15 with connection pooling
-- **Cache**: Redis for session and room management
 
-### Mobile App (`./VideoCallApp/`)
+## 📊 Monitoring- **Real-time Communication**: Socket.IO for signaling
+
+- **Database**: PostgreSQL 15 with connection pooling
+
+```bash- **Cache**: Redis for session and room management
+
+# Check services on EC2
+
+sudo docker-compose ps### Mobile App (`./VideoCallApp/`)
+
 - **Framework**: React Native with TypeScript
-- **Navigation**: React Navigation 6
-- **WebRTC**: React Native WebRTC
+
+# View logs- **Navigation**: React Navigation 6
+
+sudo docker-compose logs -f- **WebRTC**: React Native WebRTC
+
 - **State Management**: Context API with hooks
 
-### Infrastructure
-- **Containerization**: Docker with multi-stage builds
+# Check Caddy SSL status
+
+sudo docker-compose logs caddy### Infrastructure
+
+```- **Containerization**: Docker with multi-stage builds
+
 - **Orchestration**: Docker Compose for development
-- **Production**: AWS ECS Fargate with Application Load Balancer
+
+## 🔧 Troubleshooting- **Production**: AWS ECS Fargate with Application Load Balancer
+
 - **Database**: Amazon RDS PostgreSQL with automated backups
-- **Cache**: Amazon ElastiCache Redis cluster
+
+### Common Issues:- **Cache**: Amazon ElastiCache Redis cluster
+
 - **SSL**: AWS Certificate Manager with automatic renewal
 
-## 📁 Project Structure
+1. **SSL not working:** Check domain DNS pointing to EC2 IP
+
+2. **WebRTC not connecting:** Verify UDP ports 40000-49999 open## 📁 Project Structure
+
+3. **App not accessible:** Check security groups allow HTTP/HTTPS
 
 ```
-├── videocall/                 # Next.js Frontend Application
+
+### Useful Commands:├── videocall/                 # Next.js Frontend Application
+
 │   ├── src/
-│   │   ├── app/              # Next.js App Router pages
-│   │   ├── components/       # Reusable React components
-│   │   ├── hooks/            # Custom React hooks
+
+```bash│   │   ├── app/              # Next.js App Router pages
+
+# Restart services│   │   ├── components/       # Reusable React components
+
+sudo docker-compose restart│   │   ├── hooks/            # Custom React hooks
+
 │   │   ├── services/         # MediaSoup client services
-│   │   └── types/            # TypeScript type definitions
-│   └── Dockerfile            # Production container configuration
+
+# Update deployment│   │   └── types/            # TypeScript type definitions
+
+git push origin main│   └── Dockerfile            # Production container configuration
+
 │
-├── videocallbackend/         # Express.js Backend Application
-│   ├── src/
-│   │   ├── config/           # MediaSoup and server configuration
+
+# Check container logs├── videocallbackend/         # Express.js Backend Application
+
+sudo docker-compose logs app│   ├── src/
+
+```│   │   ├── config/           # MediaSoup and server configuration
+
 │   │   ├── services/         # Core business logic services
-│   │   ├── routes/           # API route handlers
+
+That's it! Simple, secure, and scalable. 🎉│   │   ├── routes/           # API route handlers
 │   │   └── types/            # Shared type definitions
 │   └── Dockerfile            # Production container configuration
 │

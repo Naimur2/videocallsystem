@@ -1,103 +1,202 @@
-# ======================
-# PRODUCTION .GITIGNORE - MULTI-REPOSITORY STRUCTURE
-# ======================
-# This handles multiple Git repositories within the main project
+# Environment files# ======================
 
-# ===================================
+.env# PRODUCTION .GITIGNORE - MULTI-REPOSITORY STRUCTURE
+
+.env.local# ======================
+
+.env.development.local# This handles multiple Git repositories within the main project
+
+.env.test.local
+
+.env.production.local# ===================================
+
 # Multi-Repository Management
-# ===================================
-# Individual repository .git directories are preserved
-# Content is managed via submodules or manual sync
 
-# Backup directories created during repository management
+# Dependencies# ===================================
+
+node_modules/# Individual repository .git directories are preserved
+
+*/node_modules/# Content is managed via submodules or manual sync
+
+.pnp
+
+.pnp.js# Backup directories created during repository management
+
 backup-*/
-*.backup
-repository-backup/
 
-# ===================================
-# Environment files (keep .env.example)
-# ===================================
-.env
-.env.local
-.env.development
-.env.production
-.env.staging
-.env.backup
-.env.cloudflare
-.env.*
-!.env.example
+# Build outputs*.backup
 
-# ===================================
-# Dependencies (all subdirectories)
-# ===================================
-node_modules/
-*/node_modules/
-**/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-bun.lock
-**/bun.lock
-package-lock.json
-**/package-lock.json
-yarn.lock
-**/yarn.lock
+.next/repository-backup/
 
-# Production builds
 dist/
-build/
-.next/
-out/
+
+build/# ===================================
+
+out/# Environment files (keep .env.example)
+
+# ===================================
+
+# Runtime data.env
+
+pids.env.local
+
+*.pid.env.development
+
+*.seed.env.production
+
+*.pid.lock.env.staging
+
+.env.backup
+
+# Logs.env.cloudflare
+
+logs.env.*
+
+*.log!.env.example
+
+npm-debug.log*
+
+yarn-debug.log*# ===================================
+
+yarn-error.log*# Dependencies (all subdirectories)
+
+lerna-debug.log*# ===================================
+
+node_modules/
+
+# Docker volumes*/node_modules/
+
+data/**/node_modules/
+
+npm-debug.log*
+
+# IDEyarn-debug.log*
+
+.vscode/yarn-error.log*
+
+.idea/.pnpm-debug.log*
+
+*.swpbun.lock
+
+*.swo**/bun.lock
+
+*~package-lock.json
+
+**/package-lock.json
+
+# OSyarn.lock
+
+.DS_Store**/yarn.lock
+
+.DS_Store?
+
+._*# Production builds
+
+.Spotlight-V100dist/
+
+.Trashesbuild/
+
+ehthumbs.db.next/
+
+Thumbs.dbout/
+
 .vercel/
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-logs/
-*.log
-.tunnel-url
-cloudflared-output.tmp
+# Temporary files
 
-# Docker
-.dockerignore
+*.tmp# Runtime data
+
+*.temppids
+
+*.pid
+
+# Cache*.seed
+
+.cache/*.pid.lock
+
+.parcel-cache/logs/
+
+*.log
+
+# TypeScript.tunnel-url
+
+*.tsbuildinfocloudflared-output.tmp
+
+
+
+# Optional npm cache directory# Docker
+
+.npm.dockerignore
+
 docker-compose.override.yml
-docker-compose.*.yml
-!docker-compose.yml
+
+# Optional eslint cachedocker-compose.*.yml
+
+.eslintcache!docker-compose.yml
+
 !docker-compose.prod.yml
 
-# Development files
-.vscode/
+# Coverage directory used by tools like istanbul
+
+coverage/# Development files
+
+*.lcov.vscode/
+
 .idea/
-*.swp
-*.swo
+
+# nyc test coverage*.swp
+
+.nyc_output*.swo
+
 *~
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
+# Microbundle cache
+
+.rpt2_cache/# OS generated files
+
+.rts2_cache_cjs/.DS_Store
+
+.rts2_cache_es/.DS_Store?
+
+.rts2_cache_umd/._*
+
 .Spotlight-V100
-.Trashes
-ehthumbs.db
+
+# Optional REPL history.Trashes
+
+.node_repl_historyehthumbs.db
+
 Thumbs.db
 
-# Temporary files
+# Yarn Integrity file
+
+.yarn-integrity# Temporary files
+
 *.tmp
-*.temp
-*.bak
+
+# dotenv environment variables file*.temp
+
+.env.test*.bak
+
 *.backup
-backups/
+
+# Stores VSCode versions used for testing VSCode extensionsbackups/
+
+.vscode-test
 
 # AWS and deployment
-.aws/
-*.pem
-*.key
-!*.pub
 
-# Kubernetes
+# Yarn v2.aws/
+
+.yarn/cache*.pem
+
+.yarn/unplugged*.key
+
+.yarn/build-state.yml!*.pub
+
+.yarn/install-state.gz
+
+.pnp.*# Kubernetes
 *.kubeconfig
 
 # Data directories
