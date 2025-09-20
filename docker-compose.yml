@@ -2,7 +2,7 @@
 # Each service uses a dedicated image built and pushed separately
 
 services:
-  # Nginx reverse proxy
+  # Nginx reverse proxy (internal, port 8080)
   nginx:
     image: nginx:alpine
     ports:
@@ -12,7 +12,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx_logs:/var/log/nginx
     environment:
-      - DOMAIN=${DOMAIN:-localhost}
+      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.co}
     depends_on:
       frontend:
         condition: service_healthy
@@ -38,9 +38,9 @@ services:
           cpus: '0.2'
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_BACKEND_URL=http://${DOMAIN:-localhost}/api
-      - NEXT_PUBLIC_SOCKET_URL=http://${DOMAIN:-localhost}
-      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-localhost}
+      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-meet.naimur-rahaman.co}/api
+      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-meet.naimur-rahaman.co}
+      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-meet.naimur-rahaman.co}
       - NEXT_PUBLIC_TURN_SERVER_PORT=3480
       - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}

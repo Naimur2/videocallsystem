@@ -1,0 +1,196 @@
+# Production Docker Compose for meet.naimur-rahaman.co
+# Uses Caddy for automatic HTTPS with domain
+
+services:
+  # Caddy reverse proxy with automatic HTTPS
+  caddy:
+    image: caddy:2.7-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+      - "2019:2019"  # Admin interface
+    volumes:
+      - ./Caddyfile.meet:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - caddy_logs:/var/log/caddy
+    environment:
+      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.co}
+      - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "caddy", "validate", "--config", "/etc/caddy/Caddyfile"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service (Next.js)
+  frontend:
+    image: ghcr.io/naimur2/videocallsystem-frontend:latest
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.4'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-meet.naimur-rahaman.co}/api
+      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-meet.naimur-rahaman.co}
+      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-meet.naimur-rahaman.co}
+      - NEXT_PUBLIC_TURN_SERVER_PORT=3480
+      - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
+      - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - NEXT_PUBLIC_APP_NAME=MediaSoup Video Call
+      - NEXT_PUBLIC_APP_VERSION=1.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+
+  # Backend Service (MediaSoup + Node.js)
+  backend:
+    image: ghcr.io/naimur2/videocallsystem-backend:latest
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.6'
+        reservations:
+          memory: 512M
+          cpus: '0.3'
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - TURN_USERNAME=${TURN_USERNAME}
+      - TURN_CREDENTIAL=${TURN_CREDENTIAL}
+      - TURN_SERVER=${TURN_SERVER:-turn:eturnal:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:eturnal:3478}
+      - NODE_ENV=production
+      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.co}
+      - PORT=${PORT:-3000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://meet.naimur-rahaman.co}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      eturnal:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.15'
+    environment:
+      - POSTGRES_DB=mediasoup
+      - POSTGRES_USER=mediasoup
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_SHARED_BUFFERS=${POSTGRES_SHARED_BUFFERS:-128MB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mediasoup -d mediasoup"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    command: redis-server --maxmemory ${REDIS_MAXMEMORY:-256mb} --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # eTURN Server (Modern TURN/STUN replacement)
+  eturnal:
+    image: ghcr.io/naimur2/videocallsystem-eturnal:latest
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.3'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "3480:3478/tcp"
+      - "3480:3478/udp"  
+      - "5350:5349/tcp"
+      - "5350:5349/udp"
+      # Optimized port range for t2.large (20 ports)
+      - "49152-49171:49152-49171/udp"
+    volumes:
+      - eturnal_data:/var/lib/eturnal
+      - eturnal_logs:/var/log/eturnal
+    environment:
+      - ETURNAL_SECRET=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - ETURNAL_RELAY_MIN_PORT=49152
+      - ETURNAL_RELAY_MAX_PORT=49171
+      - ETURNAL_LOG_LEVEL=info
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "eturnal"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  caddy_logs:
+  eturnal_data:
+  eturnal_logs:
+
+networks:
+  default:
+    driver: bridge

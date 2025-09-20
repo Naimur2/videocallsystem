@@ -1,0 +1,107 @@
+# Caddyfile for meet.naimur-rahaman.co
+# Video calling application with automatic HTTPS
+
+# Main domain configuration  
+meet.naimur-rahaman.co {
+    # Enable automatic HTTPS via Let's Encrypt (HTTP challenge)
+    # Make sure ports 80 and 443 are accessible for validation
+    
+    # Security headers
+    header {
+        # Security
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        
+        # CORS for video calling
+        Access-Control-Allow-Origin "https://meet.naimur-rahaman.co"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        Access-Control-Allow-Credentials "true"
+    }
+    
+    # Handle preflight OPTIONS requests
+    @options {
+        method OPTIONS
+    }
+    respond @options 204
+    
+    # Frontend - Next.js application
+    handle /* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # Backend API
+    handle /api/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    
+    # WebSocket for Socket.IO
+    handle /socket.io/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up Connection {>Connection}
+            header_up Upgrade {>Upgrade}
+        }
+    }
+    
+    # Health check endpoint
+    handle /health {
+        respond "healthy" 200
+    }
+    
+    # Static files with caching
+    handle /static/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+    
+    # Next.js static files
+    handle /_next/static/* {
+        reverse_proxy localhost:8080 {
+            header_up Host {host}
+        }
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+    
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
+
+# Redirect www to non-www
+www.meet.naimur-rahaman.co {
+    redir https://meet.naimur-rahaman.co{uri} permanent
+}
+
+# Admin interface (optional, for debugging)
+:2019 {
+    # Caddy admin API
+    # Access via http://your-server:2019
+    # Only accessible from specific IPs for security
+    @admin {
+        remote_ip 127.0.0.1 ::1
+    }
+    handle @admin {
+        admin
+    }
+    respond "Access denied" 403
+}
