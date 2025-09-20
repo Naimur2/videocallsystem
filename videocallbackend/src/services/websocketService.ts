@@ -36,13 +36,8 @@ class MediaSoupWebSocketServer {
       port,
       path: '/ws',
       perMessageDeflate: {
-        deflate: {
-          concurrencyLimit: 10,
-          threshold: 1024,
-        },
-        inflate: {
-          threshold: 1024,
-        },
+        concurrencyLimit: 10,
+        threshold: 1024,
       },
     });
 

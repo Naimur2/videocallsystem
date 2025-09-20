@@ -27,7 +27,7 @@ export class ConsumerManager {
             })
         ) {
             console.warn(`[ConsumerManager] Cannot create consumer - capabilities mismatch`);
-            return;
+            return null;
         }
 
         // Find the consuming transport
@@ -36,7 +36,7 @@ export class ConsumerManager {
 
         if (!transport) {
             console.warn('[ConsumerManager] No consuming transport found');
-            return;
+            return null;
         }
 
         try {
@@ -94,6 +94,7 @@ export class ConsumerManager {
             return consumer;
         } catch (error) {
             console.error(`[ConsumerManager] Failed to create consumer: ${error}`);
+            return null;
         }
     }
 

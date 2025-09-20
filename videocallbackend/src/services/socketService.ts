@@ -4,12 +4,11 @@
  */
 
 import * as mediasoup from "mediasoup";
+import * as process from "process";
 import { Server, Socket } from "socket.io";
 import { ClientToServerEvents, Participant, ServerToClientEvents } from "../types";
 import { consumerManager } from "./consumerManager";
 import mediasoupServiceInstance from "./mediasoupService";
-import { promisify } from "util";
-import * as process from "process";
 
 export interface RoomParticipant extends Participant {
   socketId: string;
@@ -94,17 +93,17 @@ class SocketService {
     });
     
     // Room management
-    socket.on("joinRoom", (data, callback) => {
-      this._handleJoinRoom(socket, data, callback);
+    socket.on("joinRoom", (data) => {
+      this._handleJoinRoom(socket, data);
     });
     
-    socket.on("leaveRoom", (callback) => {
-      this._handleLeaveRoom(socket, callback);
+    socket.on("leaveRoom", (data) => {
+      this._handleLeaveRoom(socket);
     });
     
     // Transport management
-    socket.on("createWebRtcTransport", (data, callback) => {
-      this._handleCreateWebRtcTransport(socket, data, callback);
+    socket.on("createWebRtcTransport", (callback) => {
+      this._handleCreateWebRtcTransport(socket, { producing: true, consuming: false }, callback);
     });
 
     // Allow clients to request existing producers (for late joiners)
@@ -117,8 +116,8 @@ class SocketService {
       }
     });
     
-    socket.on("connectTransport", (data, callback) => {
-      this._handleConnectTransport(socket, data, callback);
+    socket.on("connectTransport", (data) => {
+      this._handleConnectTransport(socket, data, () => {});
     });
     
     socket.on("connectWebRtcTransport", (data, callback) => {
@@ -135,13 +134,13 @@ class SocketService {
       this._handleConsume(socket, data, callback);
     });
     
-    socket.on("resumeConsumer", (data, callback) => {
-      this._handleResumeConsumer(socket, data, callback);
+    socket.on("resumeConsumer", (data) => {
+      this._handleResumeConsumer(socket, data, () => {});
     });
     
     // Chat events
-    socket.on("sendMessage", (data: any, callback) => {
-      this._handleSendMessage(socket, data, callback);
+    socket.on("sendMessage", (data) => {
+      this._handleSendMessage(socket, data, () => {});
     });
     
     // Test event for debugging Socket.IO connectivity
@@ -193,7 +192,7 @@ class SocketService {
   private async _handleJoinRoom(
     socket: Socket<ClientToServerEvents, ServerToClientEvents>,
     data: { roomId: string; participantName: string; userEmail?: string },
-    callback: (response?: any) => void
+    callback?: (response?: any) => void
   ): Promise<void> {
     console.log("[SocketService] 🚪 Handling join room:", {
       socketId: socket.id,

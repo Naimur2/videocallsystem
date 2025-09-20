@@ -117,6 +117,8 @@ export interface ClientToServerEvents {
   "test-echo": (data: { message: string; timestamp: number }, callback: (response: any) => void) => void;
 
   // MediaSoup WebRTC
+  getRtpCapabilities: (callback: (rtpCapabilities: any) => void) => void;
+  getProducers: (callback: (response?: any) => void) => void;
   getRouterRtpCapabilities: (callback: (rtpCapabilities: any) => void) => void;
   createWebRtcTransport: (callback: (params: any) => void) => void;
   connectTransport: (data: {
