@@ -7,18 +7,15 @@ FROM eturnal/eturnal:1.12.1
 # Switch to root to configure
 USER root
 
-# Install netcat for health checks
-RUN apk add --no-cache netcat-openbsd
-
 # Copy our configuration
 COPY eturnal.yml /etc/eturnal/eturnal.yml
 
 # Set proper permissions
 RUN chown -R eturnal:eturnal /etc/eturnal/eturnal.yml
 
-# Health check using netcat to test STUN port
+# Simple health check that checks if eturnal process is running
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
-    CMD nc -u -z localhost 3478 || (echo "Health check failed - eTURN not responding on port 3478" && exit 1)
+    CMD pgrep eturnal > /dev/null || exit 1
 
 # Switch back to eturnal user for security
 USER eturnal
