@@ -32,7 +32,7 @@ services:
       # Reduced port range for development
       - "40000-40100:40000-40100/udp"
 
-  caddy:
+  nginx:
     ports:
       - "80:80"
       - "443:443"

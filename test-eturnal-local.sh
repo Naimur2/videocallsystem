@@ -61,7 +61,7 @@ for i in {1..24}; do
 done
 
 echo "🌐 Starting frontend and proxy..."
-docker compose up -d frontend caddy
+docker compose up -d frontend nginx
 
 echo "📊 Final status:"
 docker compose ps

@@ -22,7 +22,7 @@ graph TB
     end
     
     subgraph "Production Deployment"
-        CD[Caddy Proxy] --> FE_C[Frontend Container]
+        NG[Nginx Proxy] --> FE_C[Frontend Container]
         FE_C --> BE_C[Backend Container]
         BE_C --> PG[PostgreSQL]
         BE_C --> RD[Redis]
@@ -44,7 +44,7 @@ graph TB
 | **Legacy App** | `ghcr.io/repo-app:latest` | Full-stack (migration) | `./` |
 | **Database** | `postgres:15-alpine` | PostgreSQL Database | Official Image |
 | **Cache** | `redis:7-alpine` | Redis Cache/Sessions | Official Image |
-| **Proxy** | `caddy:2.7-alpine` | Reverse Proxy/SSL | Official Image |
+| **Proxy** | `nginx:alpine` | Reverse Proxy/SSL | Official Image |
 
 ## 🚀 Deployment Workflows
 

@@ -38,8 +38,8 @@ services:
           cpus: '0.2'
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
-      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-localhost}
+      - NEXT_PUBLIC_BACKEND_URL=http://${DOMAIN:-localhost}/api
+      - NEXT_PUBLIC_SOCKET_URL=http://${DOMAIN:-localhost}
       - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-localhost}
       - NEXT_PUBLIC_TURN_SERVER_PORT=3478
       - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
@@ -83,7 +83,7 @@ services:
       - NODE_ENV=production
       - DOMAIN=${DOMAIN:-localhost}
       - PORT=${PORT:-3001}
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://localhost}
+      - CORS_ORIGIN=http://${DOMAIN:-localhost}
     # Remove explicit dependencies - backend startup script handles waiting
     restart: unless-stopped
     healthcheck:

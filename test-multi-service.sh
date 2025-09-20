@@ -116,7 +116,7 @@ test_volumes() {
     local volumes=(
         "${PROJECT_NAME}_postgres_data"
         "${PROJECT_NAME}_redis_data"
-        "${PROJECT_NAME}_caddy_data"
+        "${PROJECT_NAME}_nginx_logs"
         "${PROJECT_NAME}_eturnal_data"
     )
     

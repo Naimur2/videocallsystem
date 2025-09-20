@@ -1,15 +1,13 @@
 ﻿services:
-  # Caddy reverse proxy
-  caddy:
-    image: caddy:2.7-alpine
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-      - caddy_logs:/var/log/caddy
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     depends_on:
@@ -116,8 +114,6 @@
 volumes:
   postgres_data:
   redis_data:
-  caddy_data:
-  caddy_config:
-  caddy_logs:
+  nginx_logs:
   eturnal_data:
   eturnal_logs:

@@ -21,7 +21,7 @@ graph TB
     end
     
     subgraph "Application Layer"
-        PROXY[Caddy Proxy<br/>:80/:443]
+        PROXY[Nginx Proxy<br/>:80/:443]
         FRONTEND[Frontend Service<br/>:3000]
         BACKEND[Backend Service<br/>:8080]
     end
@@ -100,7 +100,7 @@ docker compose ps
 | **eTURN** | TURN/STUN server for NAT traversal | eTURN (modern, efficient) | 3478 |
 | **Database** | PostgreSQL database | PostgreSQL 15 | 5432 |
 | **Cache** | Redis for sessions/cache | Redis 7 | 6379 |
-| **Proxy** | Reverse proxy with SSL | Caddy 2.7 | 80/443 |
+| **Proxy** | Reverse proxy with SSL | Nginx Alpine | 80/443 |
 
 ## 🔧 Configuration
 

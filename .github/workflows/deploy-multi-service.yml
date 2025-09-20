@@ -44,7 +44,7 @@ jobs:
         echo "📦 Pulling base images..."
         sudo docker pull redis:7-alpine
         sudo docker pull postgres:15-alpine
-        sudo docker pull caddy:2.7-alpine
+        sudo docker pull nginx:alpine
         
         echo "⏳ Brief pause to prevent resource spikes..."
         sleep 5
@@ -56,7 +56,7 @@ jobs:
         sudo docker pull ghcr.io/naimur2/videocallsystem-eturnal:latest
         
         echo "✅ All images pulled successfully"
-        sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|caddy)" || true
+        sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|nginx)" || true
     
     - name: Deploy with multi-service compose
       run: |
@@ -148,7 +148,7 @@ jobs:
         sleep 15
         sudo docker compose -f docker-compose.yml logs --tail=10 frontend || true
         
-        sudo docker compose -f docker-compose.yml up -d caddy
+        sudo docker compose -f docker-compose.yml up -d nginx
         sleep 10
         
         echo "📊 Final service status:"
@@ -185,7 +185,7 @@ jobs:
         echo "- eTURN: ghcr.io/naimur2/videocallsystem-eturnal:latest"
         echo "- Database: postgres:15-alpine"
         echo "- Cache: redis:7-alpine"
-        echo "- Proxy: caddy:2.7-alpine"
+        echo "- Proxy: nginx:alpine"
 
     - name: Legacy app deployment (optional)
       if: github.event.inputs.deploy_legacy == 'true'
