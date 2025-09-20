@@ -202,7 +202,7 @@ Thumbs.db
 # Data directories
 data/
 uploads/
-coturn/logs/
+eturnal/logs/
 
 # Scripts (keep essential ones)
 start-*.ps1

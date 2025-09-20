@@ -53,7 +53,7 @@ jobs:
         echo "🏗️ Pulling custom service images..."
         sudo docker pull ghcr.io/naimur2/videocallsystem-frontend:latest
         sudo docker pull ghcr.io/naimur2/videocallsystem-backend:latest
-        sudo docker pull ghcr.io/naimur2/videocallsystem-coturn:latest
+        sudo docker pull ghcr.io/naimur2/videocallsystem-eturnal:latest
         
         echo "✅ All images pulled successfully"
         sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|caddy)" || true
@@ -102,34 +102,45 @@ jobs:
         sleep 20
         sudo docker compose -f docker-compose.yml logs --tail=10 backend || true
         
-        sudo docker compose -f docker-compose.yml up -d coturn  
-        echo "⏳ Waiting for CoTURN to start (with crash monitoring)..."
+        sudo docker compose -f docker-compose.yml up -d eturnal  
+        echo "⏳ Waiting for eTURN to start (with detailed error logging)..."
         sleep 5
         
-        # Monitor CoTURN for crashes
-        echo "🔍 Checking if CoTURN is running without crashing..."
-        for i in {1..6}; do
-          if sudo docker compose -f docker-compose.yml ps coturn | grep -q "running"; then
-            echo "✅ CoTURN is stable after ${i}0 seconds"
+        # Monitor eTURN for crashes with detailed logging
+        echo "🔍 Checking if eTURN is running without crashing..."
+        for i in {1..8}; do
+          if sudo docker compose -f docker-compose.yml ps eturnal | grep -q "running"; then
+            echo "✅ eTURN is stable after ${i}0 seconds"
             break
-          elif sudo docker compose -f docker-compose.yml ps coturn | grep -q "exited"; then
-            echo "❌ CoTURN crashed! Stopping deployment to prevent server crash"
-            sudo docker compose -f docker-compose.yml logs --tail=20 coturn
-            sudo docker compose -f docker-compose.yml down coturn
+          elif sudo docker compose -f docker-compose.yml ps eturnal | grep -q "exited"; then
+            echo "❌ eTURN crashed! Detailed error analysis:"
+            echo "🔍 Container exit code:"
+            sudo docker compose -f docker-compose.yml ps eturnal
+            echo "📋 Full eTURN logs:"
+            sudo docker compose -f docker-compose.yml logs eturnal
+            echo "🐳 Docker inspect (last 500 chars):"
+            sudo docker inspect $(sudo docker compose -f docker-compose.yml ps -q eturnal) | tail -c 500
+            echo "💾 System resources:"
+            free -h
+            df -h /
+            echo "🔥 Stopping failed eTURN container..."
+            sudo docker compose -f docker-compose.yml down eturnal
             exit 1
           else
-            echo "⏳ CoTURN still starting... (attempt $i/6)"
+            echo "⏳ eTURN still starting... (attempt $i/8)"
+            echo "📋 Current eTURN logs:"
+            sudo docker compose -f docker-compose.yml logs --tail=5 eturnal || true
             sleep 10
           fi
         done
         
-        echo "🔍 CoTURN container status:"
-        sudo docker compose -f docker-compose.yml ps coturn || true
-        echo "📋 CoTURN logs:"
-        sudo docker compose -f docker-compose.yml logs --tail=15 coturn || true
-        echo "🔗 CoTURN ports:"
-        sudo docker port $(sudo docker compose -f docker-compose.yml ps -q coturn) || true
-        echo "💾 System memory after CoTURN start:"
+        echo "🔍 eTURN container status:"
+        sudo docker compose -f docker-compose.yml ps eturnal || true
+        echo "📋 eTURN startup logs:"
+        sudo docker compose -f docker-compose.yml logs --tail=20 eturnal || true
+        echo "🔗 eTURN ports:"
+        sudo docker port $(sudo docker compose -f docker-compose.yml ps -q eturnal) || true
+        echo "💾 System memory after eTURN start:"
         free -h || true
         
         # Start frontend and proxy
@@ -172,7 +183,7 @@ jobs:
         echo "🎯 Deployment Summary:"
         echo "- Frontend: ghcr.io/naimur2/videocallsystem-frontend:latest"
         echo "- Backend: ghcr.io/naimur2/videocallsystem-backend:latest" 
-        echo "- CoTURN: ghcr.io/naimur2/videocallsystem-coturn:latest"
+        echo "- eTURN: ghcr.io/naimur2/videocallsystem-eturnal:latest"
         echo "- Database: postgres:15-alpine"
         echo "- Cache: redis:7-alpine"
         echo "- Proxy: caddy:2.7-alpine"

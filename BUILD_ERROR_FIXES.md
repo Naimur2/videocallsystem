@@ -5,11 +5,11 @@
 ### 1. **GHCR Permission Errors**
 **Problem**: 
 - `denied: installation not allowed to Create organization package`
-- CoTURN and Legacy App builds failing with GHCR push errors
+- eTURN and Legacy App builds failing with GHCR push errors
 
 **Solution**:
 - ✅ **Removed problematic legacy app build** that was using `npm install -g bun`
-- ✅ **Simplified to 3 core services**: Frontend, Backend, CoTURN
+- ✅ **Simplified to 3 core services**: Frontend, Backend, eTURN
 - ✅ **Fixed image naming consistency** using environment variables
 - ✅ **Updated deployment workflow** to only pull existing images
 
@@ -32,7 +32,7 @@
 - ✅ **Streamlined to essential services only**:
   - Frontend (Next.js)
   - Backend (Node.js + MediaSoup)  
-  - CoTURN (WebRTC TURN server)
+  - eTURN (WebRTC TURN server)
 - ✅ **Removed legacy full-stack app** (problematic root Dockerfile)
 - ✅ **Updated security scans and summaries** for new service list
 
@@ -43,13 +43,13 @@ graph TB
     subgraph "Build Pipeline"
         A[build-frontend] --> D[GHCR Frontend Image]
         B[build-backend] --> E[GHCR Backend Image]
-        C[build-coturn] --> F[GHCR CoTURN Image]
+        C[build-eturnal] --> F[GHCR eTURN Image]
     end
     
     subgraph "Deployment"
         D --> G[Frontend Service]
         E --> H[Backend Service]
-        F --> I[CoTURN Service]
+        F --> I[eTURN Service]
         J[PostgreSQL] --> H
         K[Redis] --> H
         L[Caddy Proxy] --> G
@@ -62,7 +62,7 @@ graph TB
 |---------|-------|--------|---------|
 | **Frontend** | `ghcr.io/naimur2/videocallsystem-frontend:latest` | ✅ Active | Next.js React App |
 | **Backend** | `ghcr.io/naimur2/videocallsystem-backend:latest` | ✅ Active | Node.js + MediaSoup API |
-| **CoTURN** | `ghcr.io/naimur2/videocallsystem-coturn:latest` | ✅ Active | WebRTC TURN Server |
+| **eTURN** | `ghcr.io/naimur2/videocallsystem-eturnal:latest` | ✅ Active | WebRTC TURN Server |
 | **PostgreSQL** | `postgres:15-alpine` | ✅ Active | Database (Official Image) |
 | **Redis** | `redis:7-alpine` | ✅ Active | Cache/Sessions (Official Image) |
 | **Caddy** | `caddy:2.7-alpine` | ✅ Active | Reverse Proxy (Official Image) |
@@ -91,7 +91,7 @@ graph TB
    ```
 
 2. **Monitor New Build**:
-   - Should see only 3 service builds (Frontend, Backend, CoTURN)
+   - Should see only 3 service builds (Frontend, Backend, eTURN)
    - No more bun/legacy app permission errors
    - Faster overall build time
 

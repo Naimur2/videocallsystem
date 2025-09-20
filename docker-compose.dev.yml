@@ -25,7 +25,7 @@ services:
     ports:
       - "6379:6379"  # Expose for Redis tools
 
-  coturn:
+  eturnal:
     ports:
       - "3478:3478/tcp"
       - "3478:3478/udp"

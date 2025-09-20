@@ -541,7 +541,7 @@ class SocketService {
         sctpParameters: transport.sctpParameters,
         // CRITICAL: Add ICE servers for STUN/TURN functionality
         iceServers: [
-          // Local CoTURN server (self-hosted)
+          // Local eTURN server (self-hosted, modern TURN server)
           {
             urls: `stun:${process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com"}:3478`,
           },

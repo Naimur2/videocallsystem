@@ -17,7 +17,7 @@ graph TB
     subgraph "GHCR Registry"
         FE[Frontend Image<br/>ghcr.io/repo-frontend:latest]
         BE[Backend Image<br/>ghcr.io/repo-backend:latest]
-        CT[CoTURN Image<br/>ghcr.io/repo-coturn:latest]
+        ET[eTURN Image<br/>ghcr.io/repo-eturnal:latest]
         LG[Legacy App Image<br/>ghcr.io/repo-app:latest]
     end
     
@@ -26,7 +26,7 @@ graph TB
         FE_C --> BE_C[Backend Container]
         BE_C --> PG[PostgreSQL]
         BE_C --> RD[Redis]
-        BE_C --> CT_C[CoTURN Container]
+        BE_C --> ET_C[eTURN Container]
     end
     
     FE -.-> FE_C
@@ -40,7 +40,7 @@ graph TB
 |---------|-------|---------|---------------|
 | **Frontend** | `ghcr.io/repo-frontend:latest` | Next.js React App | `./videocall/` |
 | **Backend** | `ghcr.io/repo-backend:latest` | Node.js API Server | `./videocallbackend/` |
-| **CoTURN** | `ghcr.io/repo-coturn:latest` | WebRTC TURN Server | `./coturn/` |
+| **eTURN** | `ghcr.io/repo-eturnal:latest` | WebRTC TURN Server | `./eturnal/` |
 | **Legacy App** | `ghcr.io/repo-app:latest` | Full-stack (migration) | `./` |
 | **Database** | `postgres:15-alpine` | PostgreSQL Database | Official Image |
 | **Cache** | `redis:7-alpine` | Redis Cache/Sessions | Official Image |
@@ -58,7 +58,7 @@ Triggers on:
 **Jobs:**
 - `build-frontend` → Builds and pushes frontend image
 - `build-backend` → Builds and pushes backend image  
-- `build-coturn` → Builds and pushes CoTURN image
+- `build-eturnal` → Builds and pushes eTURN image
 - `build-legacy-app` → Builds and pushes legacy app image
 - `security-scan` → Scans all images for vulnerabilities
 - `build-summary` → Creates deployment summary
@@ -136,7 +136,7 @@ MEDIASOUP_ANNOUNCED_IP=your.domain.com
 RTC_MIN_PORT=40000
 RTC_MAX_PORT=49999
 
-# CoTURN
+# eTURN (modern TURN server)
 COTURN_USERNAME=mediasoup
 COTURN_PASSWORD=secure_turn_password
 

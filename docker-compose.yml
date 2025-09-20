@@ -80,8 +80,8 @@ services:
       - RTC_MAX_PORT=${RTC_MAX_PORT:-49171}
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
-      - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
-      - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
+      - TURN_SERVER=${TURN_SERVER:-turn:eturnal:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:eturnal:3478}
       - NODE_ENV=production
       - DOMAIN=${DOMAIN:-localhost}
       - PORT=${PORT:-8080}
@@ -91,7 +91,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      coturn:
+      eturnal:
         condition: service_started
     restart: unless-stopped
     healthcheck:
@@ -137,17 +137,17 @@ services:
       timeout: 3s
       retries: 5
 
-  # CoTURN server for WebRTC NAT traversal
-  coturn:
-    image: ghcr.io/naimur2/videocallsystem-coturn:latest
+  # eTURN server for WebRTC NAT traversal (modern CoTURN replacement)
+  eturnal:
+    image: ghcr.io/naimur2/videocallsystem-eturnal:latest
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.3'
-        reservations:
           memory: 128M
-          cpus: '0.15'
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
     depends_on:
       redis:
         condition: service_healthy
@@ -159,14 +159,19 @@ services:
       # Optimized port range for t2.large (20 ports)
       - "49152-49171:49152-49171/udp"
     volumes:
-      - coturn_data:/var/lib/coturn
-      - coturn_logs:/var/log/coturn
+      - eturnal_data:/var/lib/eturnal
+      - eturnal_logs:/var/log/eturnal
     environment:
-      - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
-      - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
-      - TURN_REALM=${DOMAIN:-localhost}
-      - EXTERNAL_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
-    restart: "no"
+      - ETURNAL_RELAY_IPV4_ADDR=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
+      - ETURNAL_SECRET=${COTURN_PASSWORD:-mediasoupTurn2024!}
+      - ETURNAL_REALM=${DOMAIN:-localhost}
+      - ETURNAL_LOG_LEVEL=debug
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "nc", "-u", "-z", "localhost", "3478"]
       interval: 15s
@@ -187,8 +192,8 @@ services:
       - RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
-      - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
-      - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
+      - TURN_SERVER=${TURN_SERVER:-turn:eturnal:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:eturnal:3478}
       - NODE_ENV=production
       - DOMAIN=${DOMAIN:-localhost}
       - PORT=${PORT:-3000}
@@ -198,7 +203,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      coturn:
+      eturnal:
         condition: service_started
     restart: unless-stopped
     healthcheck:
@@ -216,8 +221,8 @@ volumes:
   caddy_data:
   caddy_config:
   caddy_logs:
-  coturn_data:
-  coturn_logs:
+  eturnal_data:
+  eturnal_logs:
 
 networks:
   default:

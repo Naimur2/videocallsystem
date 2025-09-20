@@ -118,8 +118,8 @@ jobs:
         id: image
         run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:latest" >> $GITHUB_OUTPUT
 
-  # Build CoTURN Service
-  build-coturn:
+  # Build eTURN Service (modern STUN/TURN server)
+  build-eturnal:
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.image.outputs.image }}
@@ -142,19 +142,19 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-coturn
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-eturnal
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push CoTURN image
+      - name: Build and push eTURN image
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: ./coturn
-          file: ./coturn/Dockerfile
+          context: ./eturnal
+          file: ./eturnal/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -164,11 +164,11 @@ jobs:
 
       - name: Output image
         id: image
-        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-coturn:latest" >> $GITHUB_OUTPUT
+        run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-eturnal:latest" >> $GITHUB_OUTPUT
 
   # Summary Job
   build-summary:
-    needs: [build-frontend, build-backend, build-coturn]
+    needs: [build-frontend, build-backend, build-eturnal]
     runs-on: ubuntu-latest
     steps:
       - name: Build Summary
@@ -179,6 +179,6 @@ jobs:
           echo "|---------|-------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| Frontend | \`${{ needs.build-frontend.outputs.image }}\` | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "| Backend | \`${{ needs.build-backend.outputs.image }}\` | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| CoTURN | \`${{ needs.build-coturn.outputs.image }}\` | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| eTURN | \`${{ needs.build-eturnal.outputs.image }}\` | ✅ |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "All images are now available in GHCR and ready for deployment!" >> $GITHUB_STEP_SUMMARY

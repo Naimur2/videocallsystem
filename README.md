@@ -27,7 +27,7 @@ graph TB
     end
     
     subgraph "Infrastructure Layer"
-        TURN[CoTURN Server<br/>:3478]
+        TURN[eTURN Server<br/>:3478]
         DB[PostgreSQL<br/>:5432]
         CACHE[Redis<br/>:6379]
     end
@@ -97,7 +97,7 @@ docker compose ps
 |---------|-------------|------------|-------|
 | **Frontend** | React/Next.js web application | Next.js 14, TypeScript | 3000 |
 | **Backend** | API server and MediaSoup logic | Node.js, Express, MediaSoup | 8080 |
-| **CoTURN** | TURN/STUN server for NAT traversal | CoTURN (Alpine Linux) | 3478 |
+| **eTURN** | TURN/STUN server for NAT traversal | eTURN (modern, efficient) | 3478 |
 | **Database** | PostgreSQL database | PostgreSQL 15 | 5432 |
 | **Cache** | Redis for sessions/cache | Redis 7 | 6379 |
 | **Proxy** | Reverse proxy with SSL | Caddy 2.7 | 80/443 |
@@ -205,7 +205,7 @@ videocallsystem/
 ├── 📂 videocall/              # Frontend (Next.js)
 ├── 📂 videocallbackend/       # Backend (Node.js)
 ├── 📂 VideoCallApp/           # Mobile App (React Native)
-├── 📂 coturn/                 # CoTURN server config
+├── 📂 eturnal/                 # eTURN server config (modern TURN server)
 ├── 📂 docs/                   # Documentation
 ├── 📂 scripts/                # Utility scripts
 ├── 📂 .github/workflows/      # CI/CD pipelines
@@ -257,7 +257,7 @@ cd videocall && npm install
 cd ../videocallbackend && npm install
 
 # Start development services
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis coturn
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis eturnal
 
 # Run frontend locally
 cd videocall && npm run dev

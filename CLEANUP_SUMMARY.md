@@ -47,7 +47,7 @@ videocallsystem/
 ├── 📂 videocall/                    # Frontend (Next.js)
 ├── 📂 videocallbackend/             # Backend (Node.js)  
 ├── 📂 VideoCallApp/                 # Mobile App (React Native)
-├── 📂 coturn/                       # CoTURN server config
+├── 📂 eturnal/                       # eTURN server config (modern TURN)
 ├── 📂 docs/                         # Clean documentation
 ├── 📂 scripts/                      # Essential utilities only
 ├── 📂 .github/workflows/            # Streamlined CI/CD

@@ -44,7 +44,7 @@ test_image_availability() {
     local images=(
         "ghcr.io/naimur2/videocallsystem-frontend:latest"
         "ghcr.io/naimur2/videocallsystem-backend:latest" 
-        "ghcr.io/naimur2/videocallsystem-coturn:latest"
+        "ghcr.io/naimur2/videocallsystem-eturnal:latest"
         "ghcr.io/naimur2/videocallsystem-app:latest"
     )
     
@@ -117,7 +117,7 @@ test_volumes() {
         "${PROJECT_NAME}_postgres_data"
         "${PROJECT_NAME}_redis_data"
         "${PROJECT_NAME}_caddy_data"
-        "${PROJECT_NAME}_coturn_data"
+        "${PROJECT_NAME}_eturnal_data"
     )
     
     for volume in "${volumes[@]}"; do

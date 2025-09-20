@@ -45,8 +45,8 @@
       - RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
-      - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
-      - STUN_SERVER=${STUN_SERVER:-stun:coturn:3478}
+      - TURN_SERVER=${TURN_SERVER:-turn:eturnal:3478}
+      - STUN_SERVER=${STUN_SERVER:-stun:eturnal:3478}
       - NODE_ENV=${NODE_ENV:-development}
       - DOMAIN=${DOMAIN:-localhost}
     ports:
@@ -56,7 +56,7 @@
         condition: service_healthy
       redis:
         condition: service_healthy
-      coturn:
+      eturnal:
         condition: service_started
     restart: unless-stopped
     healthcheck:
@@ -94,9 +94,9 @@
       timeout: 3s
       retries: 5
 
-  # CoTURN server for WebRTC NAT traversal
-  coturn:
-    build: ./coturn
+  # eTURN server for WebRTC NAT traversal (modern CoTURN replacement)
+  eturnal:
+    build: ./eturnal
     ports:
       - "3478:3478/tcp"
       - "3478:3478/udp"
@@ -104,8 +104,8 @@
       - "5349:5349/udp"
       - "50000-50100:50000-50100/udp"  # Smaller port range for local development
     volumes:
-      - coturn_data:/var/lib/coturn
-      - coturn_logs:/var/log/coturn
+      - eturnal_data:/var/lib/eturnal
+      - eturnal_logs:/var/log/eturnal
     environment:
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
@@ -119,5 +119,5 @@ volumes:
   caddy_data:
   caddy_config:
   caddy_logs:
-  coturn_data:
-  coturn_logs:
+  eturnal_data:
+  eturnal_logs:
