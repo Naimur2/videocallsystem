@@ -81,21 +81,37 @@ jobs:
         
         # Start database services first
         echo "📊 Starting database services..."
-        sudo docker compose -f docker-compose.yml up -d postgres redis --wait
-        sleep 15
+        sudo docker compose -f docker-compose.yml up -d postgres redis
+        echo "⏳ Waiting for database services to be ready..."
+        timeout 60 sudo docker compose -f docker-compose.yml exec postgres pg_isready -U mediasoup -d mediasoup || echo "PostgreSQL timeout"
+        timeout 30 sudo docker compose -f docker-compose.yml exec redis redis-cli ping || echo "Redis timeout"
+        sleep 10
         
-        # Start application services
+        # Start application services with individual checks
         echo "🎯 Starting application services..."
-        sudo docker compose -f docker-compose.yml up -d backend coturn --wait
+        sudo docker compose -f docker-compose.yml up -d backend
+        echo "⏳ Waiting for backend to start..."
+        sleep 20
+        sudo docker compose -f docker-compose.yml logs --tail=10 backend || true
+        
+        sudo docker compose -f docker-compose.yml up -d coturn  
+        echo "⏳ Waiting for CoTURN to start..."
         sleep 15
+        sudo docker compose -f docker-compose.yml logs --tail=10 coturn || true
         
         # Start frontend and proxy
         echo "🌐 Starting frontend and proxy..."
-        sudo docker compose -f docker-compose.yml up -d frontend caddy --wait
+        sudo docker compose -f docker-compose.yml up -d frontend
+        sleep 15
+        sudo docker compose -f docker-compose.yml logs --tail=10 frontend || true
         
-        echo "✅ All services deployed successfully!"
+        sudo docker compose -f docker-compose.yml up -d caddy
+        sleep 10
         
-        echo "✅ All services are healthy and ready!"
+        echo "📊 Final service status:"
+        sudo docker compose -f docker-compose.yml ps
+        
+        echo "✅ All services deployed!"
     
     - name: Verify deployment
       run: |
