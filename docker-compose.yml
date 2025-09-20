@@ -165,7 +165,12 @@ services:
       - ETURNAL_RELAY_IPV4_ADDR=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
       - ETURNAL_SECRET=${COTURN_PASSWORD:-mediasoupTurn2024!}
       - ETURNAL_REALM=${DOMAIN:-localhost}
-      - ETURNAL_LOG_LEVEL=debug
+      - ETURNAL_LOG_LEVEL=info
+      - ETURNAL_RELAY_MIN_PORT=49152
+      - ETURNAL_RELAY_MAX_PORT=49171
+      - ETURNAL_MAX_ALLOCATIONS=100
+      - ETURNAL_MAX_PERMISSIONS=10
+      - ETURNAL_MAX_BPS=1000000
     restart: unless-stopped
     logging:
       driver: "json-file"
