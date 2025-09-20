@@ -171,8 +171,8 @@ jobs:
         
         echo ""
         echo "🔍 Health Checks (with timeouts):"
-        timeout 30 sudo docker compose -f docker-compose.yml exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend not ready yet"
-        timeout 30 sudo docker compose -f docker-compose.yml exec -T backend curl -f http://localhost:8080/api/health || echo "Backend not ready yet"
+        timeout 30 sudo docker compose -f docker-compose.yml exec -T frontend curl -f http://localhost:3000/ || echo "Frontend not ready yet"
+        timeout 30 sudo docker compose -f docker-compose.yml exec -T backend curl -f http://localhost:3001/api/v1/health || echo "Backend not ready yet"
         
         echo ""
         echo "📋 Recent Logs (limited to prevent overflow):"
