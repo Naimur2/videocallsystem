@@ -3,12 +3,8 @@ name: Build and Push Multi-Service Images
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - 'videocall/**'
-      - 'videocallbackend/**' 
-      - 'coturn/**'
-      - 'Dockerfile'
-      - '.github/workflows/build-images.yml'
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
