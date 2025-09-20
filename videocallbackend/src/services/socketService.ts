@@ -8,6 +8,8 @@ import { Server, Socket } from "socket.io";
 import { ClientToServerEvents, Participant, ServerToClientEvents } from "../types";
 import { consumerManager } from "./consumerManager";
 import mediasoupServiceInstance from "./mediasoupService";
+import { promisify } from "util";
+import * as process from "process";
 
 export interface RoomParticipant extends Participant {
   socketId: string;
@@ -138,12 +140,12 @@ class SocketService {
     });
     
     // Chat events
-    socket.on("sendMessage", (data, callback) => {
+    socket.on("sendMessage", (data: any, callback) => {
       this._handleSendMessage(socket, data, callback);
     });
     
     // Test event for debugging Socket.IO connectivity
-    socket.on("test-echo", (data, callback) => {
+    socket.on("test-echo", (data: any, callback?: any) => {
       console.log("[SocketService] 🧪 Test echo received:", data);
       if (callback) {
         callback({ 
@@ -491,21 +493,11 @@ class SocketService {
         enableTcp: true,
         preferUdp: true,
         iceConsentTimeout: 20,
-        enableSctp: Boolean(data.sctpCapabilities),
-        numSctpStreams: data.sctpCapabilities?.numStreams,
-        appData: { producing, consuming }
-      };
-      
-      // Use WebRTC server if available (MediaSoup demo pattern)
-      const worker = this.routerToWorker?.get(room.router!);
-      const webRtcServer = worker ? this.webRtcServers?.get(worker) : null;
-      
-      if (webRtcServer) {
-        webRtcTransportOptions.webRtcServer = webRtcServer;
-        console.log(`[SocketService] 🔗 Using WebRTC server for transport`);
-      } else {
+        enableSctp: true,
+        numSctpStreams: { OS: 1024, MIS: 1024 },
+        appData: { producing, consuming },
         // Fallback to individual transport configuration
-        webRtcTransportOptions.listenInfos = [
+        listenInfos: [
           {
             protocol: "udp",
             ip: "0.0.0.0",
@@ -524,47 +516,17 @@ class SocketService {
               max: parseInt(process.env.RTC_MAX_PORT || "49999")
             }
           }
-        ];
-        console.log(`[SocketService] 🔗 Using individual transport configuration`);
-      }
+        ]
+      } as any;
       
       // Create transport using proper configuration
       let transport;
       
-      if (webRtcServer) {
-        // Use WebRTC server
-        transport = await room.router!.createWebRtcTransport({
-          ...webRtcTransportOptions,
-          webRtcServer
-        });
-        console.log(`[SocketService] ✅ Transport created with WebRTC server`);
-      } else {
-        // Use individual transport configuration
-        transport = await room.router!.createWebRtcTransport({
-          ...webRtcTransportOptions,
-          listenInfos: [
-            {
-              protocol: "udp",
-              ip: "0.0.0.0",
-              announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com",
-              portRange: {
-                min: parseInt(process.env.RTC_MIN_PORT || "40000"),
-                max: parseInt(process.env.RTC_MAX_PORT || "49999")
-              }
-            },
-            {
-              protocol: "tcp", 
-              ip: "0.0.0.0",
-              announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "meeting.naimur-rahaman.com",
-              portRange: {
-                min: parseInt(process.env.RTC_MIN_PORT || "40000"),
-                max: parseInt(process.env.RTC_MAX_PORT || "49999")
-              }
-            }
-          ]
-        });
-        console.log(`[SocketService] ✅ Transport created with individual configuration`);
-      }
+      // Use individual transport configuration
+      transport = await room.router!.createWebRtcTransport({
+        ...webRtcTransportOptions
+      });
+      console.log(`[SocketService] ✅ Transport created with individual configuration`);
       
       // Store transport
       participant.transports.set(transport.id, transport);
