@@ -74,7 +74,15 @@ jobs:
         sleep 5
         sudo docker image prune -f || true
         
-        echo "📋 Available images:"
+        echo "� AWS EC2 t2.large resource check:"
+        echo "Memory:"
+        free -h || true
+        echo "CPU:"
+        nproc || true
+        echo "Disk:"
+        df -h / || true
+        
+        echo "�📋 Available images:"
         sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | head -10
         
         echo "🚀 Starting services one by one to prevent resource spikes..."
@@ -95,14 +103,34 @@ jobs:
         sudo docker compose -f docker-compose.yml logs --tail=10 backend || true
         
         sudo docker compose -f docker-compose.yml up -d coturn  
-        echo "⏳ Waiting for CoTURN to start..."
-        sleep 15
+        echo "⏳ Waiting for CoTURN to start (with crash monitoring)..."
+        sleep 5
+        
+        # Monitor CoTURN for crashes
+        echo "🔍 Checking if CoTURN is running without crashing..."
+        for i in {1..6}; do
+          if sudo docker compose -f docker-compose.yml ps coturn | grep -q "running"; then
+            echo "✅ CoTURN is stable after ${i}0 seconds"
+            break
+          elif sudo docker compose -f docker-compose.yml ps coturn | grep -q "exited"; then
+            echo "❌ CoTURN crashed! Stopping deployment to prevent server crash"
+            sudo docker compose -f docker-compose.yml logs --tail=20 coturn
+            sudo docker compose -f docker-compose.yml down coturn
+            exit 1
+          else
+            echo "⏳ CoTURN still starting... (attempt $i/6)"
+            sleep 10
+          fi
+        done
+        
         echo "🔍 CoTURN container status:"
         sudo docker compose -f docker-compose.yml ps coturn || true
         echo "📋 CoTURN logs:"
         sudo docker compose -f docker-compose.yml logs --tail=15 coturn || true
         echo "🔗 CoTURN ports:"
         sudo docker port $(sudo docker compose -f docker-compose.yml ps -q coturn) || true
+        echo "💾 System memory after CoTURN start:"
+        free -h || true
         
         # Start frontend and proxy
         echo "🌐 Starting frontend and proxy..."

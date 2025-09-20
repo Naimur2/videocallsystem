@@ -33,11 +33,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.3'
+          memory: 512M
+          cpus: '0.4'
         reservations:
-          memory: 128M
-          cpus: '0.15'
+          memory: 256M
+          cpus: '0.2'
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
@@ -65,19 +65,19 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: 1G
+          cpus: '0.6'
         reservations:
-          memory: 256M
-          cpus: '0.25'
+          memory: 512M
+          cpus: '0.3'
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://mediasoup:password@postgres:5432/mediasoup}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - JWT_SECRET=${JWT_SECRET:-change-this-in-production}
       - SESSION_SECRET=${SESSION_SECRET:-change-this-in-production}
       - MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
-      - RTC_MIN_PORT=${RTC_MIN_PORT:-40000}
-      - RTC_MAX_PORT=${RTC_MAX_PORT:-49999}
+      - RTC_MIN_PORT=${RTC_MIN_PORT:-49152}
+      - RTC_MAX_PORT=${RTC_MAX_PORT:-49171}
       - TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - TURN_CREDENTIAL=${COTURN_PASSWORD:-mediasoupTurn2024!}
       - TURN_SERVER=${TURN_SERVER:-turn:coturn:3478}
@@ -107,11 +107,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
           cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.1'
+          memory: 256M
+          cpus: '0.15'
     environment:
       - POSTGRES_DB=mediasoup
       - POSTGRES_USER=mediasoup
@@ -140,6 +140,14 @@ services:
   # CoTURN server for WebRTC NAT traversal
   coturn:
     image: ghcr.io/naimur2/videocallsystem-coturn:latest
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.3'
+        reservations:
+          memory: 128M
+          cpus: '0.15'
     depends_on:
       redis:
         condition: service_healthy
@@ -148,8 +156,8 @@ services:
       - "3478:3478/udp"  
       - "5349:5349/tcp"
       - "5349:5349/udp"
-      # Use a smaller, safer port range for TURN relay
-      - "49152-49200:49152-49200/udp"
+      # Optimized port range for t2.large (20 ports)
+      - "49152-49171:49152-49171/udp"
     volumes:
       - coturn_data:/var/lib/coturn
       - coturn_logs:/var/log/coturn
@@ -158,7 +166,7 @@ services:
       - TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
       - TURN_REALM=${DOMAIN:-localhost}
       - EXTERNAL_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
-    restart: unless-stopped
+    restart: "no"
     healthcheck:
       test: ["CMD", "nc", "-u", "-z", "localhost", "3478"]
       interval: 15s
