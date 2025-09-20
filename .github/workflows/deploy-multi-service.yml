@@ -38,62 +38,86 @@ jobs:
 
     - name: Pull all service images
       run: |
-        echo "🔄 Pulling all pre-built service images..."
+        echo "🔄 Pulling images sequentially to prevent resource exhaustion..."
         
-        # Pull base images first (from Docker Hub)
-        {
-          sudo docker pull redis:7-alpine &
-          sudo docker pull postgres:15-alpine &
-          sudo docker pull caddy:2.7-alpine &
-          wait
-        }
+        # Pull base images first (sequential to avoid overwhelming the system)
+        echo "📦 Pulling base images..."
+        sudo docker pull redis:7-alpine
+        sudo docker pull postgres:15-alpine
+        sudo docker pull caddy:2.7-alpine
         
-        # Pull our custom service images from GHCR
-        {
-          sudo docker pull ghcr.io/naimur2/videocallsystem-frontend:latest &
-          sudo docker pull ghcr.io/naimur2/videocallsystem-backend:latest &
-          sudo docker pull ghcr.io/naimur2/videocallsystem-coturn:latest &
-          wait
-        }
+        echo "⏳ Brief pause to prevent resource spikes..."
+        sleep 5
+        
+        # Pull our custom service images from GHCR (sequential)
+        echo "🏗️ Pulling custom service images..."
+        sudo docker pull ghcr.io/naimur2/videocallsystem-frontend:latest
+        sudo docker pull ghcr.io/naimur2/videocallsystem-backend:latest
+        sudo docker pull ghcr.io/naimur2/videocallsystem-coturn:latest
         
         echo "✅ All images pulled successfully"
-        sudo docker images | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|caddy)"
+        sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|caddy)" || true
     
     - name: Deploy with multi-service compose
       run: |
         echo "🛑 Stopping existing services..."
-        sudo docker compose down --remove-orphans || true
+        sudo docker compose -f docker-compose.yml down --remove-orphans || true
+        
+        echo "⏳ Waiting for cleanup to complete..."
+        sleep 10
         
         echo "🔍 Validating compose configuration..."
         sudo docker compose -f docker-compose.yml config --quiet
         
-        echo "🧹 Cleaning up dangling images and containers..."
-        sudo docker system prune -f || true
+        echo "🧹 Gentle cleanup to prevent resource exhaustion..."
+        sudo docker container prune -f || true
+        sleep 5
+        sudo docker image prune -f || true
         
         echo "📋 Available images:"
-        sudo docker images | head -10
+        sudo docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | head -10
         
-        echo "🚀 Starting all services with pre-built images..."
-        sudo docker compose -f docker-compose.yml up -d \
-          --pull never \
-          --force-recreate \
-          --wait
+        echo "🚀 Starting services one by one to prevent resource spikes..."
+        
+        # Start database services first
+        echo "📊 Starting database services..."
+        sudo docker compose -f docker-compose.yml up -d postgres redis --wait
+        sleep 15
+        
+        # Start application services
+        echo "🎯 Starting application services..."
+        sudo docker compose -f docker-compose.yml up -d backend coturn --wait
+        sleep 15
+        
+        # Start frontend and proxy
+        echo "🌐 Starting frontend and proxy..."
+        sudo docker compose -f docker-compose.yml up -d frontend caddy --wait
+        
+        echo "✅ All services deployed successfully!"
         
         echo "✅ All services are healthy and ready!"
     
     - name: Verify deployment
       run: |
+        echo "⏳ Waiting for services to fully initialize..."
+        sleep 30
+        
         echo "📊 Service Status:"
-        sudo docker compose -f docker-compose.yml ps
+        sudo docker compose -f docker-compose.yml ps || true
         
         echo ""
-        echo "🔍 Health Checks:"
-        sudo docker compose -f docker-compose.yml exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend starting..."
-        sudo docker compose -f docker-compose.yml exec -T backend curl -f http://localhost:8080/api/health || echo "Backend starting..."
+        echo "💾 System Resources:"
+        free -h || true
+        df -h / || true
         
         echo ""
-        echo "📋 Recent Logs:"
-        sudo docker compose -f docker-compose.yml logs --tail=5 frontend backend
+        echo "🔍 Health Checks (with timeouts):"
+        timeout 30 sudo docker compose -f docker-compose.yml exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend not ready yet"
+        timeout 30 sudo docker compose -f docker-compose.yml exec -T backend curl -f http://localhost:8080/api/health || echo "Backend not ready yet"
+        
+        echo ""
+        echo "📋 Recent Logs (limited to prevent overflow):"
+        sudo docker compose -f docker-compose.yml logs --tail=3 frontend backend || true
         
         echo ""
         echo "🎯 Deployment Summary:"
