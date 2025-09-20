@@ -29,7 +29,7 @@ services:
 
   # Frontend Service (Next.js)
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-frontend:latest
+    image: ghcr.io/naimur2/videocallsystem-frontend:latest
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-localhost}/api
@@ -53,7 +53,7 @@ services:
 
   # Backend Service (Node.js/Express)
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-backend:latest
+    image: ghcr.io/naimur2/videocallsystem-backend:latest
     environment:
       - DATABASE_URL=${DATABASE_URL:-postgresql://mediasoup:password@postgres:5432/mediasoup}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
@@ -115,7 +115,7 @@ services:
 
   # CoTURN server for WebRTC NAT traversal
   coturn:
-    image: ghcr.io/${GITHUB_REPOSITORY:-naimur2/videocallsystem}-coturn:latest
+    image: ghcr.io/naimur2/videocallsystem-coturn:latest
     ports:
       - "3478:3478/tcp"
       - "3478:3478/udp"

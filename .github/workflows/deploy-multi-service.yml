@@ -40,16 +40,17 @@ jobs:
       run: |
         echo "🔄 Pulling all pre-built service images..."
         
-        # Pull all images in parallel for faster deployment
+        # Use the exact image names from the successful build
+        # Note: These match the images that were actually built and pushed
         {
-          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-frontend:latest &
-          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-backend:latest &
-          sudo docker pull ghcr.io/${{ env.IMAGE_PREFIX }}-coturn:latest &
+          sudo docker pull ghcr.io/naimur2/videocallsystem-frontend:latest &
+          sudo docker pull ghcr.io/naimur2/videocallsystem-backend:latest &
+          sudo docker pull ghcr.io/naimur2/videocallsystem-coturn:latest &
           wait
         }
         
         echo "✅ All images pulled successfully"
-        sudo docker images | grep ghcr.io/${{ env.IMAGE_PREFIX }}
+        sudo docker images | grep ghcr.io/naimur2/videocallsystem
     
     - name: Deploy with multi-service compose
       run: |
