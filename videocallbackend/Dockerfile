@@ -1,78 +1,49 @@
-# Multi-stage build for production backend
-FROM node:20-alpine AS base
+# Optimized MediaSoup Dockerfile using Debian slim
+FROM node:20-slim AS base
 
-# Install system dependencies for MediaSoup and native modules
-RUN apk add --no-cache \
-    make \
-    gcc \
-    g++ \
+# Install MediaSoup system dependencies (Debian-based for better compatibility)
+RUN apt-get update && apt-get install -y \
+    build-essential \
     python3 \
-    py3-pip \
-    linux-headers \
+    python3-pip \
+    cmake \
+    pkg-config \
     curl \
     git \
-    dumb-init \
-    pkgconfig \
-    openssl-dev \
-    cmake \
-    libc6-compat
-
-# Set environment variables
-ENV NODE_ENV=production
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Dependencies stage - optimized for MediaSoup
+# Dependencies stage with MediaSoup pre-built binaries
 FROM base AS deps
 COPY package.json .npmrc ./
-# Generate lock file and clean install for better caching
-RUN npm install --package-lock-only && \
-    npm ci --only=production && \
+# Use MediaSoup pre-built binaries when possible
+ENV MEDIASOUP_SKIP_WORKER_PREBUILT_DOWNLOAD=false
+RUN npm ci --only=production && \
     npm cache clean --force
 
-# Build stage  
+# Build stage
 FROM base AS builder
 COPY package.json .npmrc ./
-# Generate lock file and install all dependencies
-RUN npm install --package-lock-only && \
-    npm ci
+RUN npm ci
 COPY . .
-# Build with error handling
-RUN npm run build || npx tsc || npx tsc --outDir dist src/index.ts
+RUN npm run build
 
 # Production runtime
-FROM node:20-alpine AS runner
-
-# Install runtime dependencies
-RUN apk add --no-cache \
-    curl \
-    dumb-init
+FROM node:20-slim AS runner
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 backend
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S backend -u 1001
-
-# Copy application files
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/logs && \
-    chown -R backend:nodejs /app
-
-# Switch to non-root user
 USER backend
-
-# Health check
+EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Expose port
-EXPOSE 8080
-
-# Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "dist/index.js"]
