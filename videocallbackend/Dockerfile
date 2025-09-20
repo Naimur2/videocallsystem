@@ -19,13 +19,13 @@ FROM base AS deps
 COPY package.json .npmrc ./
 # Use MediaSoup pre-built binaries when possible
 ENV MEDIASOUP_SKIP_WORKER_PREBUILT_DOWNLOAD=false
-RUN npm ci --only=production && \
+RUN npm install --only=production && \
     npm cache clean --force
 
 # Build stage
 FROM base AS builder
 COPY package.json .npmrc ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 
