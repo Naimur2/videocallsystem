@@ -40,8 +40,15 @@ jobs:
       run: |
         echo "🔄 Pulling all pre-built service images..."
         
-        # Use the exact image names from the successful build
-        # Note: These match the images that were actually built and pushed
+        # Pull base images first (from Docker Hub)
+        {
+          sudo docker pull redis:7-alpine &
+          sudo docker pull postgres:15-alpine &
+          sudo docker pull caddy:2.7-alpine &
+          wait
+        }
+        
+        # Pull our custom service images from GHCR
         {
           sudo docker pull ghcr.io/naimur2/videocallsystem-frontend:latest &
           sudo docker pull ghcr.io/naimur2/videocallsystem-backend:latest &
@@ -50,7 +57,7 @@ jobs:
         }
         
         echo "✅ All images pulled successfully"
-        sudo docker images | grep ghcr.io/naimur2/videocallsystem
+        sudo docker images | grep -E "(ghcr.io/naimur2/videocallsystem|redis|postgres|caddy)"
     
     - name: Deploy with multi-service compose
       run: |
@@ -58,10 +65,16 @@ jobs:
         sudo docker compose down --remove-orphans || true
         
         echo "🔍 Validating compose configuration..."
-        sudo docker compose config --quiet
+        sudo docker compose -f docker-compose.yml config --quiet
+        
+        echo "🧹 Cleaning up dangling images and containers..."
+        sudo docker system prune -f || true
+        
+        echo "📋 Available images:"
+        sudo docker images | head -10
         
         echo "🚀 Starting all services with pre-built images..."
-        sudo docker compose up -d \
+        sudo docker compose -f docker-compose.yml up -d \
           --pull never \
           --force-recreate \
           --wait
@@ -71,22 +84,22 @@ jobs:
     - name: Verify deployment
       run: |
         echo "📊 Service Status:"
-        sudo docker compose ps
+        sudo docker compose -f docker-compose.yml ps
         
         echo ""
         echo "🔍 Health Checks:"
-        sudo docker compose exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend starting..."
-        sudo docker compose exec -T backend curl -f http://localhost:8080/api/health || echo "Backend starting..."
+        sudo docker compose -f docker-compose.yml exec -T frontend curl -f http://localhost:3000/api/health || echo "Frontend starting..."
+        sudo docker compose -f docker-compose.yml exec -T backend curl -f http://localhost:8080/api/health || echo "Backend starting..."
         
         echo ""
         echo "📋 Recent Logs:"
-        sudo docker compose logs --tail=5 frontend backend
+        sudo docker compose -f docker-compose.yml logs --tail=5 frontend backend
         
         echo ""
         echo "🎯 Deployment Summary:"
-        echo "- Frontend: ghcr.io/${{ env.IMAGE_PREFIX }}-frontend:latest"
-        echo "- Backend: ghcr.io/${{ env.IMAGE_PREFIX }}-backend:latest" 
-        echo "- CoTURN: ghcr.io/${{ env.IMAGE_PREFIX }}-coturn:latest"
+        echo "- Frontend: ghcr.io/naimur2/videocallsystem-frontend:latest"
+        echo "- Backend: ghcr.io/naimur2/videocallsystem-backend:latest" 
+        echo "- CoTURN: ghcr.io/naimur2/videocallsystem-coturn:latest"
         echo "- Database: postgres:15-alpine"
         echo "- Cache: redis:7-alpine"
         echo "- Proxy: caddy:2.7-alpine"
