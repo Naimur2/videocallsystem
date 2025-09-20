@@ -145,10 +145,11 @@ services:
         condition: service_healthy
     ports:
       - "3478:3478/tcp"
-      - "3478:3478/udp"
+      - "3478:3478/udp"  
       - "5349:5349/tcp"
       - "5349:5349/udp"
-      - "${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-49999}:${RTC_MIN_PORT:-40000}-${RTC_MAX_PORT:-49999}/udp"
+      # Use a smaller, safer port range for TURN relay
+      - "49152-49200:49152-49200/udp"
     volumes:
       - coturn_data:/var/lib/coturn
       - coturn_logs:/var/log/coturn
@@ -158,6 +159,12 @@ services:
       - TURN_REALM=${DOMAIN:-localhost}
       - EXTERNAL_IP=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-u", "-z", "localhost", "3478"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # Legacy Full-Stack App (if still needed for migration)
   legacy-app:
