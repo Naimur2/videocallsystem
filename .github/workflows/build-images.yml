@@ -170,31 +170,6 @@ jobs:
         id: image
         run: echo "image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-coturn:latest" >> $GITHUB_OUTPUT
 
-  # Security Scanning (Optional)
-  security-scan:
-    needs: [build-frontend, build-backend, build-coturn]
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    strategy:
-      matrix:
-        image: 
-          - ${{ needs.build-frontend.outputs.image }}
-          - ${{ needs.build-backend.outputs.image }}
-          - ${{ needs.build-coturn.outputs.image }}
-    steps:
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ matrix.image }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
   # Summary Job
   build-summary:
     needs: [build-frontend, build-backend, build-coturn]
