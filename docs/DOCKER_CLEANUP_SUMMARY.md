@@ -70,8 +70,8 @@ docker-compose build --no-cache  # Rebuild
 ## 🌐 Access Points
 
 - **Local**: http://localhost:3000
-- **External**: https://meet.naimur-rahaman.com (via Cloudflare tunnel)
-- **API**: http://localhost:3201/api (local) or https://meet.naimur-rahaman.com/api (external)
+- **External**: https://meet.naimur-rahaman.comm (via Cloudflare tunnel)
+- **API**: http://localhost:3201/api (local) or https://meet.naimur-rahaman.comm/api (external)
 - **TURN Test**: http://localhost:3000/turn-test
 
 ## 🔧 Configuration Summary

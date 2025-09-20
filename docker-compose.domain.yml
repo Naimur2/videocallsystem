@@ -1,4 +1,4 @@
-# Production Docker Compose for meet.naimur-rahaman.co
+# Production Docker Compose for meet.naimur-rahaman.com
 # Uses Caddy for automatic HTTPS with domain
 
 services:
@@ -15,7 +15,7 @@ services:
       - caddy_config:/config
       - caddy_logs:/var/log/caddy
     environment:
-      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.co}
+      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.com}
       - CLOUDFLARE_API_TOKEN=${CLOUDFLARE_API_TOKEN}
     depends_on:
       frontend:
@@ -42,9 +42,9 @@ services:
           cpus: '0.2'
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-meet.naimur-rahaman.co}/api
-      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-meet.naimur-rahaman.co}
-      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-meet.naimur-rahaman.co}
+      - NEXT_PUBLIC_BACKEND_URL=https://${DOMAIN:-meet.naimur-rahaman.com}/api
+      - NEXT_PUBLIC_SOCKET_URL=https://${DOMAIN:-meet.naimur-rahaman.com}
+      - NEXT_PUBLIC_TURN_SERVER_HOST=${DOMAIN:-meet.naimur-rahaman.com}
       - NEXT_PUBLIC_TURN_SERVER_PORT=3480
       - NEXT_PUBLIC_TURN_USERNAME=${COTURN_USERNAME:-mediasoup}
       - NEXT_PUBLIC_TURN_PASSWORD=${COTURN_PASSWORD:-mediasoupTurn2024!}
@@ -82,9 +82,9 @@ services:
       - TURN_SERVER=${TURN_SERVER:-turn:eturnal:3478}
       - STUN_SERVER=${STUN_SERVER:-stun:eturnal:3478}
       - NODE_ENV=production
-      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.co}
+      - DOMAIN=${DOMAIN:-meet.naimur-rahaman.com}
       - PORT=${PORT:-3000}
-      - CORS_ORIGIN=${CORS_ORIGIN:-https://meet.naimur-rahaman.co}
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://meet.naimur-rahaman.com}
     depends_on:
       postgres:
         condition: service_healthy
