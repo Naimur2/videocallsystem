@@ -11,7 +11,7 @@ This hybrid approach combines the best of both worlds:
 ```
 Internet Users
      ↓
-Cloudflare Tunnel (call.naimur-rahaman.com)
+Cloudflare Tunnel (meet.naimur-rahaman.com)
      ↓
 Nginx Proxy (Port 80)
      ↓
@@ -70,7 +70,7 @@ Metered TURN Servers (standard.relay.metered.ca)
 
 ### 3. **Access Your App**
 - **Local**: http://localhost:3000
-- **External**: https://call.naimur-rahaman.com
+- **External**: https://meet.naimur-rahaman.com
 - **TURN Test**: http://localhost:3000/turn-test
 
 ## Configuration Details
@@ -82,7 +82,7 @@ The hybrid script automatically configures:
 ```env
 NODE_ENV=development
 PORT=3001
-CORS_ORIGIN=https://call.naimur-rahaman.com
+CORS_ORIGIN=https://meet.naimur-rahaman.com
 TURN_SERVER_HOST=standard.relay.metered.ca
 TURN_SERVER_PORT=80
 TURN_USERNAME=0f1eee4f1c2a872fbb855d62
@@ -91,8 +91,8 @@ TURN_PASSWORD=q6s07WgG7GLIq6WM
 
 **Frontend (.env.local)**:
 ```env
-NEXT_PUBLIC_BACKEND_URL=https://call.naimur-rahaman.com/api
-NEXT_PUBLIC_SOCKET_URL=https://call.naimur-rahaman.com
+NEXT_PUBLIC_BACKEND_URL=https://meet.naimur-rahaman.com/api
+NEXT_PUBLIC_SOCKET_URL=https://meet.naimur-rahaman.com
 NEXT_PUBLIC_TURN_SERVER_HOST=standard.relay.metered.ca
 NEXT_PUBLIC_TURN_USERNAME=0f1eee4f1c2a872fbb855d62
 NEXT_PUBLIC_TURN_PASSWORD=q6s07WgG7GLIq6WM
@@ -125,7 +125,7 @@ Start-Process "http://localhost:3000/turn-test"
 
 ### 3. **Multi-User Test**
 1. Start the hybrid setup: `.\start-hybrid.ps1`
-2. Open external URL: https://call.naimur-rahaman.com
+2. Open external URL: https://meet.naimur-rahaman.com
 3. Create a room and note the room ID
 4. Open the same room in a different browser/device
 5. Test video/audio sharing between participants

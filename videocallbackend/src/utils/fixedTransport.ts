@@ -19,7 +19,7 @@ export class FixedTransportCreator {
         {
           protocol: "udp" as const,
           ip: "0.0.0.0",
-          announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "call.naimur-rahaman.com",
+          announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || process.env.DOMAIN || "localhost",
           portRange: {
             min: parseInt(process.env.RTC_MIN_PORT || "40000"),
             max: parseInt(process.env.RTC_MAX_PORT || "49999")
@@ -28,7 +28,7 @@ export class FixedTransportCreator {
         {
           protocol: "tcp" as const,
           ip: "0.0.0.0", 
-          announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || "call.naimur-rahaman.com",
+          announcedAddress: process.env.MEDIASOUP_ANNOUNCED_IP || process.env.DOMAIN || "localhost",
           portRange: {
             min: parseInt(process.env.RTC_MIN_PORT || "40000"),
             max: parseInt(process.env.RTC_MAX_PORT || "49999")

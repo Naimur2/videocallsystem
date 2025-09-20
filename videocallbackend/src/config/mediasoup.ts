@@ -1,8 +1,8 @@
 import {
-  RtpCodecCapability,
-  TransportListenInfo,
-  WorkerLogLevel,
-  WorkerLogTag
+    RtpCodecCapability,
+    TransportListenInfo,
+    WorkerLogLevel,
+    WorkerLogTag
 } from "mediasoup/node/lib/types";
 
 // MediaSoup configuration interface
@@ -39,7 +39,7 @@ interface MediasoupConfig {
 // Get environment variables with fallbacks
 const MEDIASOUP_LISTEN_IP = process.env.MEDIASOUP_LISTEN_IP || "0.0.0.0";
 const MEDIASOUP_ANNOUNCED_IP =
-  process.env.MEDIASOUP_ANNOUNCED_IP || "call.naimur-rahaman.com";
+  process.env.MEDIASOUP_ANNOUNCED_IP || process.env.DOMAIN || "localhost";
 const RTC_MIN_PORT = parseInt(process.env.RTC_MIN_PORT || "40000");
 const RTC_MAX_PORT = parseInt(process.env.RTC_MAX_PORT || "49999");
 

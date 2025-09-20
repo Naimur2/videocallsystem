@@ -13,7 +13,7 @@ export default function DebugRTKPage() {
         isError,
         error,
     } = useMediaSoupSessionQuery({
-        serverUrl: 'https://call.naimur-rahaman.com',
+        serverUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://localhost',
         roomId: 'debug-room',
         userId: 'debug-user',
         userName: 'Debug User'

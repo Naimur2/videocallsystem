@@ -2,17 +2,15 @@
 # Each service uses a dedicated image built and pushed separately
 
 services:
-  # Caddy reverse proxy (uses official image)
-  caddy:
-    image: caddy:2.7-alpine
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-      - caddy_logs:/var/log/caddy
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_logs:/var/log/nginx
     environment:
       - DOMAIN=${DOMAIN:-localhost}
     depends_on:
@@ -22,7 +20,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/", "||", "exit", "1"]
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,11 +51,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/", "||", "exit", "1"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 2m
+      start_period: 1m
 
   # Backend Service (Node.js/Express)
   backend:
@@ -223,9 +221,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  caddy_data:
-  caddy_config:
-  caddy_logs:
+  nginx_logs:
   eturnal_data:
   eturnal_logs:
 

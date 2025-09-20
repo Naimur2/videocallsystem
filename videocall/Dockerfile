@@ -1,4 +1,7 @@
-# Production Build Dockerfile for Next.js MediaSoup Frontend
+# Production Build# Build arguments for Next.js environment variables
+ARG NEXT_PUBLIC_BACKEND_URL=https://localhost/api
+ARG NEXT_PUBLIC_SOCKET_URL=https://localhost
+ARG NEXT_PUBLIC_TURN_SERVER_HOST=localhostkerfile for Next.js MediaSoup Frontend
 FROM node:20-alpine AS builder
 
 # Install system dependencies
@@ -17,9 +20,9 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build arguments for Next.js public environment variables
-ARG NEXT_PUBLIC_BACKEND_URL=https://call.naimur-rahaman.com/api
-ARG NEXT_PUBLIC_SOCKET_URL=https://call.naimur-rahaman.com
-ARG NEXT_PUBLIC_TURN_SERVER_HOST=call.naimur-rahaman.com
+ARG NEXT_PUBLIC_BACKEND_URL=https://meet.naimur-rahaman.com/api
+ARG NEXT_PUBLIC_SOCKET_URL=https://meet.naimur-rahaman.com
+ARG NEXT_PUBLIC_TURN_SERVER_HOST=meet.naimur-rahaman.com
 ARG NEXT_PUBLIC_TURN_USERNAME=mediasoup
 ARG NEXT_PUBLIC_TURN_PASSWORD=mediasoup123
 
