@@ -86,13 +86,7 @@ services:
       - DOMAIN=${DOMAIN:-localhost}
       - PORT=${PORT:-3001}
       - CORS_ORIGIN=${CORS_ORIGIN:-https://localhost}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      eturnal:
-        condition: service_healthy
+    # Remove explicit dependencies - backend startup script handles waiting
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "sh", "-c", "wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health || curl -f http://localhost:3001/api/v1/health || exit 1"]
