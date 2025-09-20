@@ -296,5 +296,3 @@ This project is licensed under the MIT License.
 - 📖 **Docs**: [Documentation](docs/)
 
 ---
-
-<div align="center">
