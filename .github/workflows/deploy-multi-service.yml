@@ -108,9 +108,10 @@ jobs:
         
         # Monitor eTURN for crashes with detailed logging
         echo "🔍 Checking if eTURN is running without crashing..."
-        for i in {1..8}; do
+        for i in {1..6}; do
+          # Check if eTURN is running
           if sudo docker compose -f docker-compose.yml ps eturnal | grep -q "running"; then
-            echo "✅ eTURN is stable after ${i}0 seconds"
+            echo "✅ eTURN is stable and running after ${i}0 seconds"
             break
           elif sudo docker compose -f docker-compose.yml ps eturnal | grep -q "exited"; then
             echo "❌ eTURN crashed! Detailed error analysis:"
@@ -118,8 +119,6 @@ jobs:
             sudo docker compose -f docker-compose.yml ps eturnal
             echo "📋 Full eTURN logs:"
             sudo docker compose -f docker-compose.yml logs eturnal
-            echo "🐳 Docker inspect (last 500 chars):"
-            sudo docker inspect $(sudo docker compose -f docker-compose.yml ps -q eturnal) | tail -c 500
             echo "💾 System resources:"
             free -h
             df -h /
@@ -127,10 +126,10 @@ jobs:
             sudo docker compose -f docker-compose.yml down eturnal
             exit 1
           else
-            echo "⏳ eTURN still starting... (attempt $i/8)"
+            echo "⏳ eTURN still starting... (attempt $i/6)"
             echo "📋 Current eTURN logs:"
             sudo docker compose -f docker-compose.yml logs --tail=5 eturnal || true
-            sleep 10
+            sleep 15
           fi
         done
         

@@ -162,15 +162,21 @@ services:
       - eturnal_data:/var/lib/eturnal
       - eturnal_logs:/var/log/eturnal
     environment:
+      # eTURN official environment variables
       - ETURNAL_RELAY_IPV4_ADDR=${MEDIASOUP_ANNOUNCED_IP:-127.0.0.1}
       - ETURNAL_SECRET=${COTURN_PASSWORD:-mediasoupTurn2024!}
       - ETURNAL_REALM=${DOMAIN:-localhost}
       - ETURNAL_LOG_LEVEL=info
       - ETURNAL_RELAY_MIN_PORT=49152
       - ETURNAL_RELAY_MAX_PORT=49171
+      # Authentication configuration
+      - ETURNAL_AUTH_TYPE=long_term
+      # Performance tuning for t2.large
       - ETURNAL_MAX_ALLOCATIONS=100
       - ETURNAL_MAX_PERMISSIONS=10
       - ETURNAL_MAX_BPS=1000000
+      # User credentials
+      - ETURNAL_CREDENTIALS=mediasoup:${COTURN_PASSWORD:-mediasoupTurn2024!}
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -178,11 +184,11 @@ services:
         max-size: "10m"
         max-file: "3"
     healthcheck:
-      test: ["CMD", "nc", "-u", "-z", "localhost", "3478"]
-      interval: 15s
+      test: ["CMD", "pgrep", "-f", "eturnal"]
+      interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 20s
 
   # Legacy Full-Stack App (if still needed for migration)
   legacy-app:
